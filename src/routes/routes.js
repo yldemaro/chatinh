@@ -1,6 +1,6 @@
 import Home from "../pages/Home.vue";
 import Details from "../pages/Details.vue";
-import Tables from "../pages/Tables.vue";
+import SuperAdmin from "../pages/SuperAdmin.vue";
 import { createRouter, createWebHistory } from "vue-router";
 
 const routes = [
@@ -9,12 +9,12 @@ const routes = [
     component: Home,
   },
   {
-    path: "/details/:id",
+    path: "/:id",
     component: Details,
   },
   {
-    path: "/tables",
-    component: Tables,
+    path: "/superadmin",
+    component: SuperAdmin,
   },
 ];
 
