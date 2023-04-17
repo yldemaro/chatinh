@@ -10,6 +10,7 @@ import {
 
 import { storage } from '../firebase';
 import { db } from '../http/apihttp';
+import { Clipboard } from "v-clipboard";
 
 // import baseUrl from '../http/apihttp';
 export default {
@@ -35,15 +36,16 @@ export default {
             mostrarLinks: false
         }
     },
-    created() {
+    async created() {
         // console.log(db)
+
         this.logueado();
     },
     methods: {
         logueado() {
-            this.profile = JSON.parse(localStorage.getItem('profile'));
-            // console.log(this.profile);
 
+
+            this.profile = JSON.parse(localStorage.getItem('profile'));
             if (this.profile && this.profile.User.role === 'superadmin') {
                 this.getAllUsers();
                 this.getAllRooms();
@@ -54,18 +56,20 @@ export default {
                 this.mostraBox = true;
             }
 
+
+
         },
         getAllUsers() {
-            setInterval(() => {
-                fetch(`${db}/client/users`, {
-                    method: "GET"
+            // setInterval(() => {
+            fetch(`${db}/client/users`, {
+                method: "GET"
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // console.log(data)
+                    this.usersAll = data;
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        // console.log(data)
-                        this.usersAll = data;
-                    })
-            }, 4000)
+            // }, 4000)
         },
         getAllRooms() {
             // setInterval(() => {
@@ -74,7 +78,14 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
+
+                    // if (data.message = 'None rooms created') {
+                    //     this.groupsAll = [];
+                    //     return;
+                    // }
                     this.groupsAll = data;
+
+
 
                 })
             // }, 4000)
@@ -85,7 +96,11 @@ export default {
                 method: "GET"
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
+                    // console.log(data)
+                    if (data.message == 'Not Links found') {
+                        this.linksAll = [];
+                        return;
+                    }
                     this.linksAll = data;
                     // if (data.message = 'None rooms created') {
                     //     this.linksAll = [];
@@ -133,13 +148,13 @@ export default {
                 role: "admin",
                 owner: this.userSuperAdmin.User?.oid,
             };
-            const imageRef = ref(storage, value.Username);
+            const imageRef = ref(storage, this.img2);
 
             uploadBytes(imageRef, this.img2)
                 .then(() => {
                     getDownloadURL(imageRef).then(async (url) => {
                         console.log(url)
-                        value.img = await url;
+                        value.img = await url || '';
 
                         await fetch(`${db}/auth/signup`, {
                             method: "POST",
@@ -182,8 +197,9 @@ export default {
                                                     // console.log(data)
                                                     this.mostrarLink = true;
                                                     this.link = `${data.link}/${data.username}`;
-                                                    alertify.alert(`Click a ok para copiar ${data.link}/${data.username}`)
-
+                                                    alertify.alert(`Agregado Con exitos`);
+                                                    this.getAllUsers();
+                                                    // this.copiar(`${data.link}/${data.username}`);
                                                 })
                                             // }
                                         })
@@ -204,17 +220,20 @@ export default {
             }
         },
         users() {
+            this.getAllUsers();
             this.mostrarUsuarios = !this.mostrarUsuarios;
             this.mostrarGrupos = false;
             this.mostrarLinks = false;
         },
         grupos() {
+            this.getAllRooms();
             this.mostrarGrupos = !this.mostrarGrupos
             this.mostrarUsuarios = false;
             this.mostrarLinks = false;
             // this.mostrarUsuarios = false;
         },
         links() {
+            this.getAllLinks();
             this.mostrarLinks = !this.mostrarLinks
             this.mostrarUsuarios = false;
             this.mostrarGrupos = false;
@@ -225,41 +244,110 @@ export default {
             this.mostraBox = true;
         },
         eliminarRoom(id) {
-            console.log(id);
-            fetch(`${db}/client/rooms/${id}`, {
-                method: 'DELETE'
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data)
-                    alertify.alert(data.message)
-                    this.grupos();
-                })
-        },
-        eliminarUser(id, name) {
             // console.log(id);
-            fetch(`${db}/client/users/${id}`, {
+            fetch(`${db}/client/rooms/${id}`, {
                 method: 'DELETE'
             })
                 .then(response => response.json())
                 .then(data => {
                     // console.log(data)
                     alertify.alert(data.message)
-                    fetch(`${db}/client/rooms/findroombyusername/${name}`, {
-                        method: 'POST'
-                    }).then(response => response.json())
-                        .then(data => {
-                            console.log(data);
-                        })
+                    this.grupos();
                 })
         },
-        copiar() {
-            console.log('llamo a copiar')
-            const el = document.createElement('textarea')
-            el.value = this.link;
-            document.execCommand('copy')
+        async eliminarUser(id, name) {
+            // console.log(id);
+            await fetch(`${db}/client/rooms/findroombyusername/${name}`, {
+                method: 'POST'
+            }).then(response => response.json()).then(async data => {
+                // console.log(data);
+                if (data.length > 0) {
+                    for (let index = 0; index < data.length; index++) {
 
-            this.link = '';
+                        const result = this.linksAll.find(element => element.room == data[0].oid)
+                        console.log(result)
+                        if (!result) {
+                            return;
+                        }
+                        await fetch(`${db}/client/links/${result.objectId}`, {
+                            method: 'DELETE'
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log(data)
+                                this.getAllLinks();
+                            })
+                        await fetch(`${db}/client/rooms/${data[index].oid}`, {
+                            method: 'DELETE'
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log(data);
+                                this.getAllRooms();
+                            })
+                    }
+                }
+
+            })
+
+            await fetch(`${db}/client/users/getownerusers/${id}`, {
+                method: 'GET'
+            }).then(response => response.json())
+                .then(data => {
+                    console.log(data)
+                    if (!data) {
+                        fetch(`${db}/client/users/${id}`, {
+                            method: 'DELETE'
+                        }).then(response => response.json())
+                            .then(data => console.log(data))
+                        return;
+                    }
+                    if (data.length == 0) {
+
+                        return;
+                    } else {
+                        for (let index = 0; index < data.length; index++) {
+                            console.log(data[index])
+                            // if (result.length === 0) {
+                            //     return;
+                            // }
+
+
+                            fetch(`${db}/client/users/${data[index].objectId}`, {
+                                method: 'DELETE'
+                            }).then(response => response.json())
+                                .then(data => {
+                                    console.log(data);
+                                    this.getAllUsers();
+                                })
+
+                            // fetch(`${db}/client/links/${data[index].objectId}`, {
+                            //     method: 'DELETE'
+                            // }).then(response => response.json())
+                            //     .then(data => console.log(data))
+                        }
+                    }
+                })
+
+
+        },
+        eliminarLink(id) {
+            console.log(id);
+            fetch(`${db}/client/links/${id}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // console.log(data)
+                    this.getAllLinks();
+                })
+        },
+        copiar(valor) {
+            // console.log('llamo a copiar')
+            Clipboard.copy(valor);
+            this.mostrarLink = false;
+
+            // this.link = '';
         }
     }
 }
@@ -323,9 +411,9 @@ export default {
                 </div>
             </div>
 
-            <div class="copy-link">
+            <div class="copy-link mt-3 mb-3" v-if="mostrarLink">
                 <input type="text" readonly class="copy-link-input" :value="link">
-                <button class="copy-link-button" @click="copiar()"><i class="fa-solid fa-copy"></i></button>
+                <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
             </div>
 
             <table class="table bg bg-light text-center" style="font-size:15px;">
@@ -347,7 +435,7 @@ export default {
                                 alt="" /></td>
                         <td v-if="item.img != ''"> <img style="width:32px; margin:auto;" :src="item.img" alt="" /></td>
                         <td><button @click="eliminarUser(item.objectId, item.username)"
-                                :disabled="item.username == profile.User.username" class="btn btn-danger"><i
+                                :disabled="item.role == 'superadmin'" class="btn btn-danger"><i
                                     class="fa-solid fa-trash"></i></button></td>
                     </tr>
                     <tr class="text-center" v-if="usersAll.length === 0">
@@ -388,11 +476,15 @@ export default {
                 <tbody v-if="mostrarLinks">
 
                     <tr v-if="linksAll.length > 0" v-for="(item, index) in linksAll" :key="item.objectId">
-                        <td>{{ item.username }}</td>
+                        <td>{{ item.ObjectId }}{{ item.username }}</td>
                         <td>{{ item.room }}</td>
                         <td>{{ item.link }}/{{ item.username }}</td>
-                        <td> <button class="btn btn-danger" @click="eliminarLink(item.oid)"><i
-                                    class="fa-solid fa-trash"></i></button></td>
+                        <td>
+                            <button class="btn btn-secondary" @click="copiar(item.link + '/' + item.username)"><i
+                                    class="fa-solid fa-copy"></i></button>
+                            <button class="btn btn-danger" @click="eliminarLink(item.objectId)"><i
+                                    class="fa-solid fa-trash"></i></button>
+                        </td>
                     </tr>
                     <tr class="text-center" v-if="linksAll.length == 0">
                         <td colspan="12">No Existe Links</td>
@@ -449,7 +541,7 @@ export default {
 .copy-link {
     height: 36px;
     display: flex;
-    max-width: 300px;
+    max-width: 100%;
 }
 
 .copy-link-input {

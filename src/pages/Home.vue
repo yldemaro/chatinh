@@ -11,6 +11,7 @@ import {
     getDownloadURL,
     deleteObject,
 } from "firebase/storage";
+import { Clipboard } from "v-clipboard";
 
 import { storage } from '../firebase';
 
@@ -42,7 +43,9 @@ export default {
             },
             users: [],
             membersGroup: [],
-            room: []
+            room: [],
+            mostrarLink: false,
+            mostrarAterrizaje: false
         }
     },
     created() {
@@ -56,13 +59,13 @@ export default {
     methods: {
         async logueado() {
             this.profile = JSON.parse(localStorage.getItem("profile"));
-
             if (this.profile) {
                 this.Rol(this.profile.User.role)
                 this.obtenerRooms();
             } else {
                 alertify.alert('No puede entrar por motivos de seguridad')
-                this.$router.push('https://google.com.ve')
+                // this.$router.push('https://google.com.ve')
+                this.mostrarAterrizaje = true;
                 return;
             }
 
@@ -76,7 +79,7 @@ export default {
                 .then(async data => {
                     // console.log(data);
                     const chatWindow = document.getElementById('chat');
-                    chatWindow.scrollTop = chatWindow.scrollHeight + 60;
+                    chatWindow.scrollTop = chatWindow?.scrollHeight + 60;
                 });
         },
         async Rol(rol) {
@@ -127,8 +130,19 @@ export default {
                 })
                     .then(response => response.json())
                     .then(async data => {
-                        // console.log(data);
+                        // console.log(data, this.messages.length);
+
+                        if (!data && this.messages.length == 0) {
+                            this.messages = [];
+                            return;
+                        }
+
+                        if (data.length != this.messages.length) {
+                            // console.log('mensaje nuevo')
+                            this.messages.push(data);
+                        }
                         this.messages = await data;
+
                     });
             }, 1500);
 
@@ -267,9 +281,12 @@ export default {
                                         .then(response => response.json())
                                         .then(data => {
                                             // console.log(data);
-                                            this.link = data.link;
+                                            // this.link = data.link;
+                                            this.mostrarLink = true;
+                                            this.link = `${data.link}/${data.username}`;
+                                            this.obtenerRoom();
 
-                                            alert("Miembro Agregado Correctamente", `${data.link}/${data.username}`)
+                                            // alert("Miembro Agregado Correctamente", `${data.link}/${data.username}`)
 
                                             // fetch(`${db}/`)
                                         })
@@ -485,9 +502,10 @@ export default {
 
             return this.room;
         },
-        copiar(evt) {
-            console.log(evt);
-            document.execCommand('copy');
+        copiar(valor) {
+            console.log(valor)
+            Clipboard.copy(valor).then(data => console.log(data))
+            this.mostrarLink = false;
         }
     }
 }
@@ -495,7 +513,11 @@ export default {
 </script>
 
 <template>
-    <div class="container p-2">
+    <div class="container p-2" v-if="!mostrarAterrizaje">
+        <div class="copy-link mt-3 mb-3" v-if="mostrarLink">
+            <input type="text" readonly class="copy-link-input" :value="link">
+            <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
+        </div>
         <header class="header">
             <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=currentRoom?.img />
             <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
@@ -506,7 +528,7 @@ export default {
                 <p class="text-secondary members"><span v-for="item in currentRoom.members?.join(', ')">{{ item }}</span>
                 </p>
             </div>
-            <div class="text-right" v-if="rol === 'admin'">
+            <div class="text-right flex" v-if="rol === 'admin'">
                 <a className="btn  btn-danger text-white mr-1" @click="handleChat">
                     <i class="fa-sharp fa-regular fa-circle-stop"></i>
                 </a>
@@ -514,7 +536,7 @@ export default {
                     <i class="fa-solid fa-money-bill"></i>
                 </a>
             </div>
-            <div class="dropdown " v-if="rol == 'admin'">
+            <div class="dropdown flex" v-if="rol == 'admin'">
                 <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
                     data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fa-solid fa-plus"></i>
@@ -557,11 +579,33 @@ export default {
                                     </div>
                                 </div>
 
-                                <div class="msgheader" @click="copiar(item)">
+                                <div class="msgheader">
                                     <p class="msgtitle">{{ item.sender }}</p>
-                                    <a class="icon_btn" @click="onReferMessage(item)">
-                                        <i class="fa-solid fa-chevron-down"></i>
-                                    </a>
+                                    <div class="btn-group dropdown">
+                                        <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown"
+                                            aria-expanded="false">
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <!-- Dropdown menu links -->
+                                            <li><a class="dropdown-item" href="#"
+                                                    @click="onReferMessage(item)">Responder</a></li>
+                                            <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar
+                                                    Mensaje</a></li>
+                                        </ul>
+                                    </div>
+                                    <!--<div class="dropdown ">
+                                                        <button class="btn dropdown-toggle" type="button"
+                                                            id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
+
+                                                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                                            <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
+                                                            <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
+                                                            <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
+                                                        </ul>
+                                                    </div>-->
+                                    <!--<a class="icon_btn" @click="onReferMessage(item)">
+                                                            <i class="fa-solid fa-chevron-down"></i>
+                                                        </a>-->
                                 </div>
                                 <div>
                                     <div class="divmsgcontent">
@@ -606,6 +650,12 @@ export default {
 
 
 
+    </div>
+
+    <div class="container p-2" v-if="mostrarAterrizaje">
+        <div class="boxSeguridad">
+            <h3>Por motivos de seguridad espere el link de logueo</h3>
+        </div>
     </div>
 
     <!-- Modal -->
@@ -786,6 +836,15 @@ export default {
 .showPart {
     width: 75%;
     cursor: pointer;
+}
+
+.boxSeguridad {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .imgGrupo {
