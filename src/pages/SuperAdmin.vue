@@ -23,15 +23,38 @@ export default {
             mostraBox: true,
             userSuperAdmin: {},
             usersAll: [],
+            groupsAll: [],
+            linksAll: [],
             name: '',
             img: '',
-            img2: ''
+            img2: '',
+            mostrarUsuarios: true,
+            mostrarGrupos: false,
+            profile: {},
+            mostrarLink: false,
+            mostrarLinks: false
         }
     },
     created() {
-        console.log(db)
+        // console.log(db)
+        this.logueado();
     },
     methods: {
+        logueado() {
+            this.profile = JSON.parse(localStorage.getItem('profile'));
+            // console.log(this.profile);
+
+            if (this.profile && this.profile.User.role === 'superadmin') {
+                this.getAllUsers();
+                this.getAllRooms();
+                this.getAllLinks();
+                this.mostraBox = false;
+            } else {
+                localStorage.clear();
+                this.mostraBox = true;
+            }
+
+        },
         getAllUsers() {
             setInterval(() => {
                 fetch(`${db}/client/users`, {
@@ -43,6 +66,36 @@ export default {
                         this.usersAll = data;
                     })
             }, 4000)
+        },
+        getAllRooms() {
+            // setInterval(() => {
+            fetch(`${db}/client/rooms`, {
+                method: "GET"
+            })
+                .then(response => response.json())
+                .then(data => {
+                    this.groupsAll = data;
+
+                })
+            // }, 4000)
+        },
+        getAllLinks() {
+            // setInterval(() => {
+            fetch(`${db}/client/links`, {
+                method: "GET"
+            }).then(response => response.json())
+                .then(data => {
+                    console.log(data)
+                    this.linksAll = data;
+                    // if (data.message = 'None rooms created') {
+                    //     this.linksAll = [];
+                    //     return;
+                    // } else {
+                    //     this.linksAll = data;
+                    // }
+
+                })
+            // }, 4000)
         },
         onSubmit(e) {
             e.preventDefault();
@@ -68,32 +121,74 @@ export default {
                     this.password = '';
                 })
         },
-        agregarAdmin(e) {
+        async agregarAdmin(e) {
             e.preventDefault();
             const value = {
                 UID: "",
-                Username: this.username,
-                Password: this.password,
-                Email: this.email,
-                img: "../assets/img/user.svg",
+                Username: this.username.trim(),
+                Password: this.password.trim(),
+                Email: this.email.trim(),
+                plane: this.password,
+                img: "",
                 role: "admin",
-                owner: this.userSuperAdmin.User.objectId,
+                owner: this.userSuperAdmin.User?.oid,
             };
             const imageRef = ref(storage, value.Username);
 
             uploadBytes(imageRef, this.img2)
                 .then(() => {
                     getDownloadURL(imageRef).then(async (url) => {
+                        console.log(url)
                         value.img = await url;
 
-                        const data = await fetch(`${db}/auth/signup`, {
+                        await fetch(`${db}/auth/signup`, {
                             method: "POST",
                             body: JSON.stringify(value)
-                        });
+                        }).then(response => response.json())
+                            .then(async data => {
+                                // console.log(data);
+                                const value = {
+                                    uid: null,
+                                    name: this.username,
+                                    alias: "",
+                                    staff: [
+                                        this.username
+                                    ],
+                                    members: [
+                                        this.username
+                                    ],
+                                    img: url,
+                                    status: false
+                                }
+                                if (data) {
+                                    await fetch(`${db}/client/rooms`, {
+                                        method: 'POST',
+                                        body: JSON.stringify(value)
+                                    })
+                                        .then(response => response.json())
+                                        .then(async data => {
+                                            // console.log(data);
+                                            const value = {
+                                                Username: this.username,
+                                                Room: data.oid
+                                            }
+                                            // console.log(value)
+                                            // if (data) {
+                                            await fetch(`${db}/client/links/generate`, {
+                                                method: 'POST',
+                                                body: JSON.stringify(value)
+                                            }).then(response => response.json())
+                                                .then(data => {
+                                                    // console.log(data)
+                                                    this.mostrarLink = true;
+                                                    this.link = `${data.link}/${data.username}`;
+                                                    alertify.alert(`Click a ok para copiar ${data.link}/${data.username}`)
 
-                        console.log(data);
-
-                        return data.json();
+                                                })
+                                            // }
+                                        })
+                                }
+                            })
 
 
                     })
@@ -103,19 +198,76 @@ export default {
         },
         handleImage(e) {
             if (e.target.files[0]) {
-                this.img2 = e.target.files[0];
+                this.img2 = e.target.files[0].name;
                 const data = URL.createObjectURL(e.target.files[0]);
                 this.img = data;
             }
-        }
+        },
+        users() {
+            this.mostrarUsuarios = !this.mostrarUsuarios;
+            this.mostrarGrupos = false;
+            this.mostrarLinks = false;
+        },
+        grupos() {
+            this.mostrarGrupos = !this.mostrarGrupos
+            this.mostrarUsuarios = false;
+            this.mostrarLinks = false;
+            // this.mostrarUsuarios = false;
+        },
+        links() {
+            this.mostrarLinks = !this.mostrarLinks
+            this.mostrarUsuarios = false;
+            this.mostrarGrupos = false;
+            // this.mostrarUsuarios = false;
+        },
+        logout() {
+            localStorage.clear();
+            this.mostraBox = true;
+        },
+        eliminarRoom(id) {
+            console.log(id);
+            fetch(`${db}/client/rooms/${id}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data)
+                    alertify.alert(data.message)
+                    this.grupos();
+                })
+        },
+        eliminarUser(id, name) {
+            // console.log(id);
+            fetch(`${db}/client/users/${id}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // console.log(data)
+                    alertify.alert(data.message)
+                    fetch(`${db}/client/rooms/findroombyusername/${name}`, {
+                        method: 'POST'
+                    }).then(response => response.json())
+                        .then(data => {
+                            console.log(data);
+                        })
+                })
+        },
+        copiar() {
+            console.log('llamo a copiar')
+            const el = document.createElement('textarea')
+            el.value = this.link;
+            document.execCommand('copy')
 
+            this.link = '';
+        }
     }
 }
 
 </script>
 
 <template>
-    <div class="container-superadmin" v-if="mostraBox">
+    <div class="container container-superadmin" v-if="mostraBox">
         <div class="box-superadmin p-2">
             <div class="form-group">
                 <label class="sr-only" for="inlineFormInputGroup">Username</label>
@@ -128,9 +280,14 @@ export default {
                 </div>
             </div>
             <div class="form-group">
-                <label class="sr-only"  for="password">Password</label>
-                
-                <input type="password" class="form-control" v-model="password" name="password" placeholder="Password">
+                <label class="sr-only" for="password">Password</label>
+                <div class="input-group mb-2">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">@</div>
+                    </div>
+                    <input type="password" class="form-control" v-model="password" name="password" placeholder="Password">
+                </div>
+
             </div>
             <div class="text-center mt-1">
                 <button type="submit" class="btn btn-success text-dark" @click="onSubmit($event)">Iniciar Sesión</button>
@@ -138,44 +295,120 @@ export default {
         </div>
 
     </div>
-    <div class="container-superadmin2 p-4" v-if="!mostraBox">
+    <div class="container container-superadmin2 p-3" v-if="!mostraBox">
 
         <div>
             <!-- Button trigger modal -->
-            <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-                Agregar Administrador
-            </button>
-            <table class="table bg bg-light text-center">
-                <thead>
+            <div class="row mb-3 p-2 bg bg-secondary">
+                <div class="col-md-3 p-2">
+                    <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+                        Agregar Administrador
+                    </button>
+                </div>
+                <div class="col-md-7 p-2">
+                    <button type="button" class="btn btn-dark mr-3" @click="users()">
+                        Mostrar Usuarios
+                    </button>
+                    <button type="button" class="btn btn-dark mr-3" @click="grupos()">
+                        Mostrar Grupos
+                    </button>
+                    <button type="button" class="btn btn-dark" @click="links()">
+                        Mostrar Links
+                    </button>
+                </div>
+                <div class="col-md-2 p-2">
+                    <button type="button" class="btn btn-danger mr-3" @click="logout()">
+                        Logout
+                    </button>
+                </div>
+            </div>
+
+            <div class="copy-link">
+                <input type="text" readonly class="copy-link-input" :value="link">
+                <button class="copy-link-button" @click="copiar()"><i class="fa-solid fa-copy"></i></button>
+            </div>
+
+            <table class="table bg bg-light text-center" style="font-size:15px;">
+                <thead v-if="mostrarUsuarios">
                     <tr>
-                        <th>UID</th>
-                        <th>USERNAME</th>
+                        <th>NAME</th>
                         <th>EMAIL</th>
                         <th>ROL</th>
                         <th>IMAGE</th>
                         <th>ACTIONS</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody v-if="mostrarUsuarios">
                     <tr v-for="(item, index) in usersAll" :key="item.objectId">
-                        <td>{{ item.objectId }}</td>
                         <td>{{ item.username }}</td>
                         <td>{{ item.email }}</td>
                         <td>{{ item.role }}</td>
-                        <td v-if="item.img == ''"><img style="width:32px;" src="../assets/img/user.svg" alt="" /></td>
-                        <td v-if="item.img != ''"> <img style="width:32px" :src="item.img" alt="" /></td>
-                        <td><button class="btn btn-danger"><i class="fa-solid fa-trash"></i></button></td>
+                        <td v-if="item.img == ''"><img style="width:32px; margin:auto;" src="../assets/img/user.svg"
+                                alt="" /></td>
+                        <td v-if="item.img != ''"> <img style="width:32px; margin:auto;" :src="item.img" alt="" /></td>
+                        <td><button @click="eliminarUser(item.objectId, item.username)"
+                                :disabled="item.username == profile.User.username" class="btn btn-danger"><i
+                                    class="fa-solid fa-trash"></i></button></td>
+                    </tr>
+                    <tr class="text-center" v-if="usersAll.length === 0">
+                        <td colspan="12">Cargando......</td>
+                    </tr>
+                </tbody>
+                <thead v-if="mostrarGrupos">
+                    <tr>
+                        <th>NAME</th>
+                        <th>STAFF</th>
+                        <th>IMAGE</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody v-if="mostrarGrupos">
+
+                    <tr v-if="groupsAll.length > 0" v-for="(item, index) in groupsAll" :key="item.objectId">
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.staff }}</td>
+                        <td v-if="item.img == ''"><img style="width:32px; margin:auto;" src="../assets/img/user.svg"
+                                alt="" /></td>
+                        <td v-if="item.img != ''"> <img style="width:32px; margin:auto;" :src="item.img" alt="" /></td>
+                        <td> <button class="btn btn-danger" @click="eliminarRoom(item.oid)"><i
+                                    class="fa-solid fa-trash"></i></button></td>
+                    </tr>
+                    <tr class="text-center" v-if="groupsAll.length == 0">
+                        <td colspan="12">No Existe Grupos</td>
+                    </tr>
+                </tbody>
+                <thead v-if="mostrarLinks">
+                    <tr>
+                        <th>NAME</th>
+                        <th>Room</th>
+                        <th>LINK</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody v-if="mostrarLinks">
+
+                    <tr v-if="linksAll.length > 0" v-for="(item, index) in linksAll" :key="item.objectId">
+                        <td>{{ item.username }}</td>
+                        <td>{{ item.room }}</td>
+                        <td>{{ item.link }}/{{ item.username }}</td>
+                        <td> <button class="btn btn-danger" @click="eliminarLink(item.oid)"><i
+                                    class="fa-solid fa-trash"></i></button></td>
+                    </tr>
+                    <tr class="text-center" v-if="linksAll.length == 0">
+                        <td colspan="12">No Existe Links</td>
                     </tr>
                 </tbody>
             </table>
         </div>
+
+
         <!-- Modal -->
         <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
             aria-labelledby="staticBackdropLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="staticBackdropLabel">Modal title</h5>
+                    <div class="modal-header bg bg-primary text-white">
+                        <h5 class="modal-title" id="staticBackdropLabel">Agregar Usuario</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -207,10 +440,47 @@ export default {
                 </div>
             </div>
         </div>
+
+
     </div>
 </template>
 
 <style>
+.copy-link {
+    height: 36px;
+    display: flex;
+    max-width: 300px;
+}
+
+.copy-link-input {
+    flex-grow: 1;
+    padding: 0 8px;
+    border: 1px solid #ccc;
+    border-right: none;
+    outline: none;
+}
+
+.copy-link-input:hover {
+    background: #eee;
+}
+
+.copy-link-button {
+    flex-shrink: 0;
+    width: 60px;
+    height: var(--height);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ddd;
+    color: #333;
+    outline: none;
+    border: 1px solid #eee;
+}
+
+.copy-link-button:hover {
+    background: #ccc;
+}
+
 .container-superadmin {
     background-image: url("../assets/img/caballos.jpg");
     background-size: 100% 100%;
@@ -239,5 +509,11 @@ export default {
     display: flex;
     justify-content: center;
     flex-direction: column;
+}
+
+@media (max-width: 480px) {
+    .row {
+        text-align: center;
+    }
 }
 </style>
