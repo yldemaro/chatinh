@@ -1,15 +1,7 @@
 <script >
-
-import {
-    ref,
-    uploadBytes,
-    getStorage,
-    getDownloadURL,
-    deleteObject,
-} from "firebase/storage";
-
-import { storage } from '../firebase';
-import { db } from '../http/apihttp';
+import { db } from '../firebase';
+import firebase from "firebase";
+import { http } from '../http/apihttp';
 import { Clipboard } from "v-clipboard";
 
 // import baseUrl from '../http/apihttp';
@@ -37,19 +29,24 @@ export default {
         }
     },
     async created() {
-        // console.log(db)
+        // console.log(http)
 
         this.logueado();
     },
     methods: {
-        logueado() {
+        async logueado() {
 
 
             this.profile = JSON.parse(localStorage.getItem('profile'));
             if (this.profile && this.profile.User.role === 'superadmin') {
-                this.getAllUsers();
-                this.getAllRooms();
-                this.getAllLinks();
+                await this.getAllUsers();
+                await this.getAllRooms();
+                await this.getAllLinks();
+
+                setTimeout(() => {
+                    this.getDatatable();
+                }, 2000);
+
                 this.mostraBox = false;
             } else {
                 localStorage.clear();
@@ -61,7 +58,7 @@ export default {
         },
         getAllUsers() {
             // setInterval(() => {
-            fetch(`${db}/client/users`, {
+            fetch(`${http}/client/users`, {
                 method: "GET"
             })
                 .then(response => response.json())
@@ -73,7 +70,7 @@ export default {
         },
         getAllRooms() {
             // setInterval(() => {
-            fetch(`${db}/client/rooms`, {
+            fetch(`${http}/client/rooms`, {
                 method: "GET"
             })
                 .then(response => response.json())
@@ -92,7 +89,7 @@ export default {
         },
         getAllLinks() {
             // setInterval(() => {
-            fetch(`${db}/client/links`, {
+            fetch(`${http}/client/links`, {
                 method: "GET"
             }).then(response => response.json())
                 .then(data => {
@@ -119,7 +116,7 @@ export default {
                 username: this.username,
                 password: this.password
             }
-            fetch(`${db}/auth/signin`, {
+            fetch(`${http}/auth/signin`, {
                 method: 'POST',
                 body: JSON.stringify(value)
             })
@@ -146,17 +143,28 @@ export default {
                 plane: this.password,
                 img: "",
                 role: "admin",
-                owner: this.userSuperAdmin.User?.oid,
+                owner: this.profile.User?.oid,
             };
-            const imageRef = ref(storage, this.img2);
 
-            uploadBytes(imageRef, this.img2)
-                .then(() => {
-                    getDownloadURL(imageRef).then(async (url) => {
-                        console.log(url)
-                        value.img = await url || '';
 
-                        await fetch(`${db}/auth/signup`, {
+            const storageRef = firebase
+                .storage()
+                .ref(`${this.img2.name}`)
+                .put(this.img2);
+            storageRef.on(
+                "state_changed",
+                (snapshot) => {
+                    this.uploadValue =
+                        (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                },
+                (error) => {
+                    console.log(error.message);
+                },
+                () => {
+                    this.uploadValue = 100;
+                    storageRef.snapshot.ref.getDownloadURL().then((url) => {
+                        value.img = url || '';
+                        fetch(`${http}/auth/signup`, {
                             method: "POST",
                             body: JSON.stringify(value)
                         }).then(response => response.json())
@@ -176,7 +184,7 @@ export default {
                                     status: false
                                 }
                                 if (data) {
-                                    await fetch(`${db}/client/rooms`, {
+                                    await fetch(`${http}/client/rooms`, {
                                         method: 'POST',
                                         body: JSON.stringify(value)
                                     })
@@ -189,7 +197,7 @@ export default {
                                             }
                                             // console.log(value)
                                             // if (data) {
-                                            await fetch(`${db}/client/links/generate`, {
+                                            await fetch(`${http}/client/links/generate`, {
                                                 method: 'POST',
                                                 body: JSON.stringify(value)
                                             }).then(response => response.json())
@@ -206,15 +214,13 @@ export default {
                                 }
                             })
 
-
-                    })
-                })
-
-
+                    });
+                }
+            );
         },
         handleImage(e) {
             if (e.target.files[0]) {
-                this.img2 = e.target.files[0].name;
+                this.img2 = e.target.files[0];
                 const data = URL.createObjectURL(e.target.files[0]);
                 this.img = data;
             }
@@ -245,7 +251,7 @@ export default {
         },
         eliminarRoom(id) {
             // console.log(id);
-            fetch(`${db}/client/rooms/${id}`, {
+            fetch(`${http}/client/rooms/${id}`, {
                 method: 'DELETE'
             })
                 .then(response => response.json())
@@ -256,84 +262,68 @@ export default {
                 })
         },
         async eliminarUser(id, name) {
-            // console.log(id);
-            await fetch(`${db}/client/rooms/findroombyusername/${name}`, {
+
+            await fetch(`${http}/client/rooms/findroombyusername/${name}`, {
                 method: 'POST'
-            }).then(response => response.json()).then(async data => {
-                // console.log(data);
-                if (data.length > 0) {
-                    for (let index = 0; index < data.length; index++) {
-
-                        const result = this.linksAll.find(element => element.room == data[0].oid)
-                        console.log(result)
-                        if (!result) {
-                            return;
-                        }
-                        await fetch(`${db}/client/links/${result.objectId}`, {
-                            method: 'DELETE'
-                        })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log(data)
-                                this.getAllLinks();
-                            })
-                        await fetch(`${db}/client/rooms/${data[index].oid}`, {
-                            method: 'DELETE'
-                        })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log(data);
-                                this.getAllRooms();
-                            })
-                    }
-                }
-
             })
-
-            await fetch(`${db}/client/users/getownerusers/${id}`, {
-                method: 'GET'
-            }).then(response => response.json())
-                .then(data => {
-                    console.log(data)
-                    if (!data) {
-                        fetch(`${db}/client/users/${id}`, {
-                            method: 'DELETE'
-                        }).then(response => response.json())
-                            .then(data => console.log(data))
-                        return;
-                    }
-                    if (data.length == 0) {
-
+                .then(response => response.json())
+                .then(async data => {
+                    if (data.length === 0 || !data) {
                         return;
                     } else {
                         for (let index = 0; index < data.length; index++) {
-                            console.log(data[index])
-                            // if (result.length === 0) {
-                            //     return;
-                            // }
+                            const result = this.linksAll.filter(element => element.room == data[index].oid);
+                            console.log(result);
+                            if (result.length > 0) {
+                                await fetch(`${http}/client/links/${result[index].objectId}`, {
+                                    method: 'DELETE'
+                                })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        console.log(data)
+                                        this.getAllLinks();
+                                    })
+                            }
 
-
-                            fetch(`${db}/client/users/${data[index].objectId}`, {
+                            await fetch(`${http}/client/rooms/${data[index].oid}`, {
                                 method: 'DELETE'
-                            }).then(response => response.json())
+                            })
+                                .then(response => response.json())
                                 .then(data => {
                                     console.log(data);
-                                    this.getAllUsers();
+                                    this.getAllRooms();
                                 })
-
-                            // fetch(`${db}/client/links/${data[index].objectId}`, {
-                            //     method: 'DELETE'
-                            // }).then(response => response.json())
-                            //     .then(data => console.log(data))
                         }
                     }
                 })
 
+            await fetch(`${http}/client/users/getownerusers/${id}`, {
+                method: 'GET'
+            }).then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        for (let index = 0; index < data.length; index++) {
+                            fetch(`${http}/client/users/${data[index].objectId}`, {
+                                method: 'DELETE'
+                            }).then(response => response.json())
+                                .then(data => console.log(data))
 
+                        }
+                    }
+                });
+
+            await fetch(`${http}/client/users/${id}`, {
+                method: 'DELETE'
+            }).then(response => response.json())
+                .then(data => console.log(data))
+
+            this.getAllLinks();
+            this.getAllRooms();
+            this.getAllUsers();
         },
         eliminarLink(id) {
             console.log(id);
-            fetch(`${db}/client/links/${id}`, {
+            fetch(`${http}/client/links/${id}`, {
                 method: 'DELETE'
             })
                 .then(response => response.json())
@@ -348,7 +338,12 @@ export default {
             this.mostrarLink = false;
 
             // this.link = '';
-        }
+        },
+        getDatatable() {
+            $(document).ready(function () {
+                $("#exampleC").DataTable();
+            });
+        },
     }
 }
 
@@ -416,12 +411,13 @@ export default {
                 <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
             </div>
 
-            <table class="table bg bg-light text-center" style="font-size:15px;">
+            <table id="exampleC" class="table bg bg-light text-center" style="font-size:15px;">
                 <thead v-if="mostrarUsuarios">
                     <tr>
                         <th>NAME</th>
                         <th>EMAIL</th>
                         <th>ROL</th>
+                        <th>DUEÑO DE GRUPO</th>
                         <th>IMAGE</th>
                         <th>ACTIONS</th>
                     </tr>
@@ -431,6 +427,7 @@ export default {
                         <td>{{ item.username }}</td>
                         <td>{{ item.email }}</td>
                         <td>{{ item.role }}</td>
+                        <td>{{ item.owner }}</td>
                         <td v-if="item.img == ''"><img style="width:32px; margin:auto;" src="../assets/img/user.svg"
                                 alt="" /></td>
                         <td v-if="item.img != ''"> <img style="width:32px; margin:auto;" :src="item.img" alt="" /></td>
@@ -496,7 +493,7 @@ export default {
 
         <!-- Modal -->
         <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-            aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header bg bg-primary text-white">

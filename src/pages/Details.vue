@@ -3,7 +3,7 @@
 
 <script>
 import { useRoute } from 'vue-router';
-import { db } from '../http/apihttp';
+import { http } from '../http/apihttp';
 
 export default {
 
@@ -25,7 +25,7 @@ export default {
     },
     methods: {
         getUser(id) {
-            fetch(`${db}/client/users/findbyusername/${id}`, {
+            fetch(`${http}/client/users/findbyusername/${id}`, {
                 method: "GET"
             })
                 .then(response => response.json())
@@ -48,7 +48,7 @@ export default {
 
             // console.log(value)
 
-            fetch(`${db}/auth/signin`, {
+            fetch(`${http}/auth/signin`, {
                 method: 'POST',
                 body: JSON.stringify(value)
             })

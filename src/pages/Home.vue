@@ -2,18 +2,12 @@
 
 <script>
 
-import { db } from '../http/apihttp';
+import { http } from '../http/apihttp';
 
-import {
-    ref,
-    uploadBytes,
-    getStorage,
-    getDownloadURL,
-    deleteObject,
-} from "firebase/storage";
+import firebase from "firebase";
 import { Clipboard } from "v-clipboard";
 
-import { storage } from '../firebase';
+import { db } from '../firebase';
 
 export default {
 
@@ -72,7 +66,7 @@ export default {
             // console.log(this.profile);
         },
         async fetchMessages() {
-            fetch(`${db}/client/messages/${this.currentRoom?.oid}`, {
+            fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
                 method: "GET"
             })
                 .then(response => response.json())
@@ -88,7 +82,7 @@ export default {
         },
         async obtenerRooms() {
             // setInterval(async () => {
-            await fetch(`${db}/client/rooms/findroombyusername/${this.profile.User.username}`, {
+            await fetch(`${http}/client/rooms/findroombyusername/${this.profile.User.username}`, {
                 method: "POST"
             })
                 .then(response => response.json())
@@ -125,7 +119,7 @@ export default {
         },
         getMessages() {
             setInterval(() => {
-                fetch(`${db}/client/messages/${this.currentRoom?.oid}`, {
+                fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
                     method: "GET"
                 })
                     .then(response => response.json())
@@ -151,7 +145,7 @@ export default {
         },
         handleImage(e) {
             if (e.target.files[0]) {
-                this.img2 = e.target.files[0].name;
+                this.img2 = e.target.files[0];
                 const data = URL.createObjectURL(e.target.files[0]);
                 this.img = data;
             }
@@ -188,7 +182,7 @@ export default {
 
             // console.log(payload)
 
-            fetch(`${db}/client/messages`, {
+            fetch(`${http}/client/messages`, {
                 method: 'POST',
                 body: JSON.stringify(payload)
             })
@@ -222,81 +216,90 @@ export default {
                 role: "member",
                 owner: this.profile.User.objectId
             };
-            // console.log(value)
-            const imageRef = ref(storage, value.Username);
+            const storageRef = firebase
+                .storage()
+                .ref(`${this.img2.name}`)
+                .put(this.img2);
+            storageRef.on(
+                "state_changed",
+                (snapshot) => {
+                    this.uploadValue =
+                        (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                },
+                (error) => {
+                    console.log(error.message);
+                },
+                () => {
+                    this.uploadValue = 100;
+                    storageRef.snapshot.ref.getDownloadURL().then((url) => {
+                        value.img = url || '';
+                        fetch(`${http}/auth/signup`, {
+                            method: "POST",
+                            body: JSON.stringify(value)
+                        }).then(response => response.json())
+                            .then(data => {
+                                // console.log(data);
+                                // alertify.alert(data.message);
+                                // if (data) {
 
-            // uploadBytes(imageRef, this.img2)
-            //     .then(() => {
-            //         getDownloadURL(imageRef)
-            //             .then(async (url) => {
-            //                 value.img = url || "../assets/img/user.svg";
-            fetch(`${db}/auth/signup`, {
-                method: "POST",
-                body: JSON.stringify(value)
-            }).then(response => response.json())
-                .then(data => {
-                    // console.log(data);
-                    // alertify.alert(data.message);
-                    // if (data) {
 
+                                const addRoom = {
+                                    username: this.member.username,
+                                    roomuid: this.currentRoom.oid
+                                };
 
-                    const addRoom = {
-                        username: this.member.username,
-                        roomuid: this.currentRoom.oid
-                    };
-
-                    fetch(`${db}/client/rooms/adduser`, {
-                        method: "POST",
-                        body: JSON.stringify(addRoom)
-                    }).then(response => response.json())
-                        .then(data => {
-                            const valueRoom = {
-                                uid: '',
-                                name: this.member.username,
-                                alias: "",
-                                staff: [
-                                    this.profile.User.username
-                                ],
-                                members: [
-                                    this.profile.User.username,
-                                    this.member.username
-                                ],
-                                img: '',
-                                status: false
-                            };
-                            fetch(`${db}/client/rooms`, {
-                                method: 'POST',
-                                body: JSON.stringify(valueRoom)
-                            })
-                                .then(response => response.json())
-                                .then(data => {
-                                    const value = {
-                                        username: this.member.username,
-                                        room: this.currentRoom.oid
-                                    }
-                                    fetch(`${db}/client/links/generate`, {
-                                        method: "POST",
-                                        body: JSON.stringify(value)
-                                    })
-                                        .then(response => response.json())
-                                        .then(data => {
-                                            // console.log(data);
-                                            // this.link = data.link;
-                                            this.mostrarLink = true;
-                                            this.link = `${data.link}/${data.username}`;
-                                            this.obtenerRoom();
-
-                                            // alert("Miembro Agregado Correctamente", `${data.link}/${data.username}`)
-
-                                            // fetch(`${db}/`)
+                                fetch(`${http}/client/rooms/adduser`, {
+                                    method: "POST",
+                                    body: JSON.stringify(addRoom)
+                                }).then(response => response.json())
+                                    .then(data => {
+                                        const valueRoom = {
+                                            uid: '',
+                                            name: this.member.username,
+                                            alias: "",
+                                            staff: [
+                                                this.profile.User.username
+                                            ],
+                                            members: [
+                                                this.profile.User.username,
+                                                this.member.username
+                                            ],
+                                            img: '',
+                                            status: false
+                                        };
+                                        fetch(`${http}/client/rooms`, {
+                                            method: 'POST',
+                                            body: JSON.stringify(valueRoom)
                                         })
-                                })
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                const value = {
+                                                    username: this.member.username,
+                                                    room: this.currentRoom.oid
+                                                }
+                                                fetch(`${http}/client/links/generate`, {
+                                                    method: "POST",
+                                                    body: JSON.stringify(value)
+                                                })
+                                                    .then(response => response.json())
+                                                    .then(data => {
+                                                        // console.log(data);
+                                                        // this.link = data.link;
+                                                        this.mostrarLink = true;
+                                                        this.link = `${data.link}/${data.username}`;
+                                                        this.obtenerRooms();
 
-                        })
-                    // }
+                                                        // alert("Miembro Agregado Correctamente", `${data.link}/${data.username}`)
+
+                                                        // fetch(`${http}/`)
+                                                    })
+                                            })
+
+                                    })
+                                // }
+                            })
+                    })
                 })
-            // })
-            // })
         },
         onReferMessage(msg) {
             // console.log(msg)
@@ -322,7 +325,7 @@ export default {
                     date: "",
                 };
 
-                fetch(`${db}/client/messages`, {
+                fetch(`${http}/client/messages`, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 })
@@ -347,7 +350,7 @@ export default {
                     date: "",
                 };
 
-                fetch(`${db}/client/messages`, {
+                fetch(`${http}/client/messages`, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 })
@@ -374,7 +377,7 @@ export default {
                 status: this.chatCerrar
             }
 
-            fetch(`${db}/client/rooms`, {
+            fetch(`${http}/client/rooms`, {
                 method: "PUT",
                 body: JSON.stringify(valueChat)
             }).then(response => response.json())
@@ -427,7 +430,7 @@ export default {
                     date: "",
                 };
 
-                fetch(`${db}/client/messages`, {
+                fetch(`${http}/client/messages`, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 })
@@ -440,7 +443,7 @@ export default {
                             chatWindow.scrollTop = chatWindow.scrollHeight + 60;
                         }
                     })
-                // await fetch(`${db}/client/rooms/findroombyusername/${element.name}`,{
+                // await fetch(`${http}/client/rooms/findroombyusername/${element.name}`,{
                 //     method:'POST'
                 // })
                 // .then(response=> response.json())
@@ -482,7 +485,7 @@ export default {
                     RoomUID: id,
                     Username: person
                 };
-                fetch(`${db}/client/rooms/deleteuser`, {
+                fetch(`${http}/client/rooms/deleteuser`, {
                     method: 'POST',
                     body: JSON.stringify(value)
                 }).then(response => response.json())
@@ -490,7 +493,7 @@ export default {
             }
         },
         async obtenerRoom(name) {
-            await fetch(`${db}/client/rooms/findroombyusername/${name}`, {
+            await fetch(`${http}/client/rooms/findroombyusername/${name}`, {
                 method: 'POST'
             })
                 .then(response => response.json())
@@ -519,7 +522,7 @@ export default {
             <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
         </div>
         <header class="header">
-            <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=currentRoom?.img />
+            <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=profile?.User.img />
             <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
 
             <div class="showPart ml-2" data-bs-toggle="modal" data-bs-target="#staticBackdrop2" v-if="currentRoom">
@@ -541,7 +544,7 @@ export default {
                     data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fa-solid fa-plus"></i>
                 </button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Agregar
                             Miembro</a></li>
                     <!--<li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>-->
@@ -552,7 +555,7 @@ export default {
                     data-bs-toggle="dropdown" aria-expanded="false" @click="obtenerRoom(profile.User.username)">
                     <i class="fa-regular fa-envelope"></i>
                 </button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
                     <li v-for="item in room" @click="CurrentRoom(item)"><a class="dropdown-item" href="#">{{ item.name
                     }}</a></li>
                 </ul>
@@ -565,7 +568,7 @@ export default {
 
 
                     <img class="imgGrupo" :src="currentRoom.img" alt="" v-if="currentRoom.img != ''">
-                    <img class="imgGrupo" src="../assets/img/fondoDefault.jpeg" alt="" v-if="currentRoom.img == ''">
+                    <img class="imgGrupo" style="width: 100%;height: 100%;" src="../assets/img/fondoDefault.jpeg" alt="" v-if="currentRoom.img == ''">
                     <ul id="chat" class="p-1" style="height:100%; overflow-y: auto;">
 
                         <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']"
@@ -594,18 +597,18 @@ export default {
                                         </ul>
                                     </div>
                                     <!--<div class="dropdown ">
-                                                        <button class="btn dropdown-toggle" type="button"
-                                                            id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                                                            <button class="btn dropdown-toggle" type="button"
+                                                                id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
 
-                                                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                                            <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
-                                                            <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
-                                                            <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
-                                                        </ul>
-                                                    </div>-->
+                                                            <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
+                                                                <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
+                                                                <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
+                                                                <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
+                                                            </ul>
+                                                        </div>-->
                                     <!--<a class="icon_btn" @click="onReferMessage(item)">
-                                                            <i class="fa-solid fa-chevron-down"></i>
-                                                        </a>-->
+                                                                <i class="fa-solid fa-chevron-down"></i>
+                                                            </a>-->
                                 </div>
                                 <div>
                                     <div class="divmsgcontent">
@@ -660,7 +663,7 @@ export default {
 
     <!-- Modal -->
     <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -699,7 +702,7 @@ export default {
     </div>
 
     <div class="modal fade" id="staticBackdrop2" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg bg-success text-white">
@@ -723,7 +726,7 @@ export default {
     </div>
 
     <div class="modal fade" id="staticBackdrop3" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -853,7 +856,8 @@ export default {
     left: 50%;
     transform: translate(-50%, -50%);
     opacity: 0.6;
-    height: 100%;
+    height: 250px;
+    width: 250px;
     z-index: -1000;
 }
 
@@ -927,7 +931,7 @@ export default {
     padding: 10px;
     border: none;
     border-radius: 8px;
-    background: #d1d7db;
+    background: #d1d7http;
     width: 100%;
 }
 
