@@ -37,8 +37,8 @@ export default {
         async logueado() {
 
 
-            this.profile = JSON.parse(localStorage.getItem('profile'));
-            if (this.profile && this.profile.User.role === 'superadmin') {
+            this.profile = await JSON.parse(localStorage.getItem('profile'));
+            if (this.profile?.User.role === 'superadmin') {
                 await this.getAllUsers();
                 await this.getAllRooms();
                 await this.getAllLinks();
@@ -143,7 +143,7 @@ export default {
                 plane: this.password,
                 img: "",
                 role: "admin",
-                owner: this.profile.User?.oid,
+                owner: this.profile?.User.oid,
             };
 
 
@@ -412,7 +412,7 @@ export default {
             </div>
 
             <table id="exampleC" class="table bg bg-light text-center" style="font-size:15px;">
-                <thead v-if="mostrarUsuarios">
+                <thead class="text-center" v-if="mostrarUsuarios">
                     <tr>
                         <th>NAME</th>
                         <th>EMAIL</th>
@@ -439,7 +439,7 @@ export default {
                         <td colspan="12">Cargando......</td>
                     </tr>
                 </tbody>
-                <thead v-if="mostrarGrupos">
+                <thead class="text-center" v-if="mostrarGrupos">
                     <tr>
                         <th>NAME</th>
                         <th>STAFF</th>
@@ -462,7 +462,7 @@ export default {
                         <td colspan="12">No Existe Grupos</td>
                     </tr>
                 </tbody>
-                <thead v-if="mostrarLinks">
+                <thead class="text-center" v-if="mostrarLinks">
                     <tr>
                         <th>NAME</th>
                         <th>Room</th>

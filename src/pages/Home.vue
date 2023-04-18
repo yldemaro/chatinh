@@ -52,8 +52,8 @@ export default {
     },
     methods: {
         async logueado() {
-            this.profile = JSON.parse(localStorage.getItem("profile"));
-            if (this.profile) {
+            this.profile = await JSON.parse(localStorage.getItem("profile"));
+            if (this.profile.User.role != 'superadmin') {
                 this.Rol(this.profile.User.role)
                 this.obtenerRooms();
             } else {
@@ -63,7 +63,7 @@ export default {
                 return;
             }
 
-            // console.log(this.profile);
+            // //(this.profile);
         },
         async fetchMessages() {
             fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
@@ -71,14 +71,14 @@ export default {
             })
                 .then(response => response.json())
                 .then(async data => {
-                    // console.log(data);
+                    // //(data);
                     const chatWindow = document.getElementById('chat');
                     chatWindow.scrollTop = chatWindow?.scrollHeight + 60;
                 });
         },
         async Rol(rol) {
             this.rol = rol;
-            // console.log(this.rol)
+            // //(this.rol)
         },
         async obtenerRooms() {
             // setInterval(async () => {
@@ -106,7 +106,7 @@ export default {
 
         },
         async CurrentRoom(room) {
-            // console.log(room)
+            // //(room)
             this.currentRoom = room;
             if (this.currentRoom) {
                 const chatWindow = document.getElementById('chat');
@@ -115,7 +115,7 @@ export default {
 
         },
         handleShowParticipantes() {
-            console.log('agregar participante')
+            //('agregar participante')
         },
         getMessages() {
             setInterval(() => {
@@ -124,7 +124,7 @@ export default {
                 })
                     .then(response => response.json())
                     .then(async data => {
-                        // console.log(data, this.messages.length);
+                        // //(data, this.messages.length);
 
                         if (!data && this.messages.length == 0) {
                             this.messages = [];
@@ -132,7 +132,7 @@ export default {
                         }
 
                         if (data.length != this.messages.length) {
-                            // console.log('mensaje nuevo')
+                            // //('mensaje nuevo')
                             this.messages.push(data);
                         }
                         this.messages = await data;
@@ -151,7 +151,7 @@ export default {
             }
         },
         appendMenssage() {
-            // console.log(this.chat);
+            // //(this.chat);
 
             if (!this.chat.length) {
                 return;
@@ -168,7 +168,7 @@ export default {
                 return;
             }
 
-            // console.log(this.referMsg.oid);
+            // //(this.referMsg.oid);
 
             const payload = {
                 content: this.chat,
@@ -180,7 +180,7 @@ export default {
                 date: "",
             };
 
-            // console.log(payload)
+            // //(payload)
 
             fetch(`${http}/client/messages`, {
                 method: 'POST',
@@ -188,7 +188,7 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
-                    // console.log(data)
+                    // //(data)
                     if (data.message) {
                         // this.getMessages();
                         const chatWindow = document.getElementById('chat');
@@ -227,7 +227,7 @@ export default {
                         (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                 },
                 (error) => {
-                    console.log(error.message);
+                    //(error.message);
                 },
                 () => {
                     this.uploadValue = 100;
@@ -238,7 +238,7 @@ export default {
                             body: JSON.stringify(value)
                         }).then(response => response.json())
                             .then(data => {
-                                // console.log(data);
+                                // //(data);
                                 // alertify.alert(data.message);
                                 // if (data) {
 
@@ -283,7 +283,7 @@ export default {
                                                 })
                                                     .then(response => response.json())
                                                     .then(data => {
-                                                        // console.log(data);
+                                                        // //(data);
                                                         // this.link = data.link;
                                                         this.mostrarLink = true;
                                                         this.link = `${data.link}/${data.username}`;
@@ -302,7 +302,7 @@ export default {
                 })
         },
         onReferMessage(msg) {
-            // console.log(msg)
+            // //(msg)
             this.referMsg = msg;
             this.findMessages(msg.oid);
         },
@@ -311,7 +311,7 @@ export default {
         },
         handleChat() {
             this.chatCerrar = !this.chatCerrar;
-            console.log(this.chatCerrar)
+            //(this.chatCerrar)
 
             if (this.chatCerrar) {
                 const payload = {
@@ -331,7 +331,7 @@ export default {
                 })
                     .then(response => response.json())
                     .then(data => {
-                        // console.log(data)
+                        // //(data)
                         if (data.message) {
                             // this.getMessages();
                             const chatWindow = document.getElementById('chat');
@@ -356,7 +356,7 @@ export default {
                 })
                     .then(response => response.json())
                     .then(data => {
-                        // console.log(data)
+                        // //(data)
                         if (data.message) {
                             // this.getMessages();
                             const chatWindow = document.getElementById('chat');
@@ -388,11 +388,11 @@ export default {
             }
 
             const found = this.messages.find((value) => value.oid === id);
-            // console.log(found);
+            // //(found);
             return found;
         },
         handleChangeSaldo(e, item, i) {
-            // console.log(item, event.target.value, i)
+            // //(item, event.target.value, i)
             const value = this.users;
             this.saldo = event.target.value;
 
@@ -403,16 +403,16 @@ export default {
                 saldo: this.saldo
             }
 
-            // console.log(value)
+            // //(value)
 
             // this.users = value;
 
             // this.users= value;
 
-            // console.log(this.users)
+            // //(this.users)
         },
         async handleCarrera() {
-            // console.log(this.users, this.users.length, this.room);
+            // //(this.users, this.users.length, this.room);
 
             for (let index = 0; index < this.users.length; index++) {
                 const element = this.users[index];
@@ -436,7 +436,7 @@ export default {
                 })
                     .then(response => response.json())
                     .then(data => {
-                        // console.log(data)
+                        // //(data)
                         if (data.message) {
                             // this.getMessages();
                             const chatWindow = document.getElementById('chat');
@@ -451,7 +451,7 @@ export default {
 
                 // })
 
-                // console.log(payload);
+                // //(payload);
             }
 
 
@@ -506,8 +506,8 @@ export default {
             return this.room;
         },
         copiar(valor) {
-            console.log(valor)
-            Clipboard.copy(valor).then(data => console.log(data))
+            // //(valor)
+            Clipboard.copy(valor);
             this.mostrarLink = false;
         }
     }
@@ -516,59 +516,68 @@ export default {
 </script>
 
 <template>
-    <div class="container p-2" v-if="!mostrarAterrizaje">
+    <div class="container-full" v-if="!mostrarAterrizaje">
         <div class="copy-link mt-3 mb-3" v-if="mostrarLink">
             <input type="text" readonly class="copy-link-input" :value="link">
             <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
         </div>
         <header class="header">
-            <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=profile?.User.img />
-            <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
 
-            <div class="showPart ml-2" data-bs-toggle="modal" data-bs-target="#staticBackdrop2" v-if="currentRoom">
 
-                <h3>{{ currentRoom.name?.toUpperCase() }}</h3>
-                <p class="text-secondary members"><span v-for="item in currentRoom.members?.join(', ')">{{ item }}</span>
-                </p>
+            <div class="showPart" data-bs-toggle="modal" data-bs-target="#staticBackdrop2" v-if="currentRoom">
+                <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=profile.User?.img />
+                <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
+                <div style="display:flex; align-items: center; flex-direction: column; margin-left:5px;">
+                    <h3>{{ currentRoom.name?.toUpperCase() }}</h3>
+                    <p class="text-secondary members"><span v-for="item in currentRoom.members?.join(', ')">{{ item
+                    }}</span>
+                    </p>
+                </div>
+
             </div>
-            <div class="text-right flex" v-if="rol === 'admin'">
-                <a className="btn  btn-danger text-white mr-1" @click="handleChat">
+            <div style="display: flex;">
+                <a v-if="rol === 'admin' && room.length > 1" className="btn  btn-danger text-white mr-1"
+                    @click="handleChat">
                     <i class="fa-sharp fa-regular fa-circle-stop"></i>
                 </a>
-                <a className="btn btn-success  text-white" data-bs-toggle="modal" data-bs-target="#staticBackdrop3">
+                <a v-if="rol === 'admin' && room.length > 1" className="btn btn-success  text-white" data-bs-toggle="modal"
+                    data-bs-target="#staticBackdrop3">
                     <i class="fa-solid fa-money-bill"></i>
                 </a>
+                <div class="dropdown" v-if="rol == 'admin'">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                data-bs-target="#staticBackdrop">Agregar
+                                Miembro</a></li>
+                        <!--<li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>-->
+                    </ul>
+                </div>
+                <div class="dropdown" v-if="room.length > 1">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
+                        data-bs-toggle="dropdown" aria-expanded="false" @click="obtenerRoom(profile.User.username)">
+                        <i class="fa-regular fa-envelope"></i>
+                    </button>
+                    <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
+                        <li v-for="item in room" @click="CurrentRoom(item)"><a class="dropdown-item" href="#">{{ item.name
+                        }}</a></li>
+                    </ul>
+                </div>
             </div>
-            <div class="dropdown flex" v-if="rol == 'admin'">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
-                <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
-                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Agregar
-                            Miembro</a></li>
-                    <!--<li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>-->
-                </ul>
-            </div>
-            <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
-                    data-bs-toggle="dropdown" aria-expanded="false" @click="obtenerRoom(profile.User.username)">
-                    <i class="fa-regular fa-envelope"></i>
-                </button>
-                <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
-                    <li v-for="item in room" @click="CurrentRoom(item)"><a class="dropdown-item" href="#">{{ item.name
-                    }}</a></li>
-                </ul>
-            </div>
+
         </header>
-        <div v-if="currentRoom">
-            <div style="height: 83vh; ">
+        <div v-if="currentRoom" style="height:100%;">
+            <div>
                 <div v-if="messages">
 
 
 
                     <img class="imgGrupo" :src="currentRoom.img" alt="" v-if="currentRoom.img != ''">
-                    <img class="imgGrupo" style="width: 100%;height: 100%;" src="../assets/img/fondoDefault.jpeg" alt="" v-if="currentRoom.img == ''">
+                    <img class="imgGrupo" style="width: 100%;height: 100%;" src="../assets/img/fondoDefault.jpeg" alt=""
+                        v-if="currentRoom.img == ''">
                     <ul id="chat" class="p-1" style="height:100%; overflow-y: auto;">
 
                         <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']"
@@ -597,18 +606,18 @@ export default {
                                         </ul>
                                     </div>
                                     <!--<div class="dropdown ">
-                                                            <button class="btn dropdown-toggle" type="button"
-                                                                id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                                                                                <button class="btn dropdown-toggle" type="button"
+                                                                                    id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
 
-                                                            <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
-                                                                <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
-                                                                <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
-                                                                <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
-                                                            </ul>
-                                                        </div>-->
+                                                                                <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
+                                                                                    <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
+                                                                                    <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
+                                                                                    <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
+                                                                                </ul>
+                                                                            </div>-->
                                     <!--<a class="icon_btn" @click="onReferMessage(item)">
-                                                                <i class="fa-solid fa-chevron-down"></i>
-                                                            </a>-->
+                                                                                    <i class="fa-solid fa-chevron-down"></i>
+                                                                                </a>-->
                                 </div>
                                 <div>
                                     <div class="divmsgcontent">
@@ -655,7 +664,7 @@ export default {
 
     </div>
 
-    <div class="container p-2" v-if="mostrarAterrizaje">
+    <div class="container-full" v-if="mostrarAterrizaje">
         <div class="boxSeguridad">
             <h3>Por motivos de seguridad espere el link de logueo</h3>
         </div>
@@ -755,13 +764,17 @@ export default {
 </template>
 
 <style>
-.container {
+#app {
+    overflow: hidden;
+    height: 100%;
+}
+
+.container-full {
     display: flex;
     flex-direction: column;
     height: 100%;
     border-left: solid 1px #ccc;
     overflow: hidden;
-    padding: 10px;
 }
 
 .refercontainer {
@@ -830,8 +843,8 @@ export default {
 }
 
 .imgTitulo {
-    width: 64px;
-    height: 64px;
+    width: 40px;
+    height: 40px;
     border: 2px solid white;
     border-radius: 50%;
 }
@@ -839,6 +852,7 @@ export default {
 .showPart {
     width: 75%;
     cursor: pointer;
+    display: flex;
 }
 
 .boxSeguridad {
