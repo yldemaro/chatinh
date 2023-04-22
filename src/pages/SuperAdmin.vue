@@ -103,10 +103,10 @@ export default {
                             // console.log(data)
                             this.usersAll = await data;
 
-                            if (this.linksAll.length >= 2) {
-                                this.getAllRooms();
-                                this.getAllLinks();
-                            }
+                            // if (this.linksAll.length >= 2) {
+                            //     this.getAllRooms();
+                            //     this.getAllLinks();
+                            // }
 
                             setTimeout(() => {
                                 this.getDatatable();
