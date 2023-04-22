@@ -58,20 +58,20 @@ export default {
                     this.Rol(this.profile?.User.role);
                     this.obtenerRooms();
                     this.fetchMessages();
-                    // this.getUser();
+                    this.getUser(this.profile?.User.username);
                 } else {
                     this.$router.push('/superadmin')
                 }
             }
         },
-        async getUser() {
+        async getUser(username) {
             setInterval(() => {
                 //(this.profile?.User.username);
                 if (!this.profile) {
                     localStorage.clear()
                     return;
                 } else {
-                    fetch(`${http}/client/users/findbyusername/${this.profile?.User.username}`, {
+                    fetch(`${http}/client/users/findbyusername/${username}`, {
                         method: 'GET'
                     })
                         .then(response => response.json())
@@ -143,7 +143,7 @@ export default {
             setInterval(() => {
                 fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
                     method: "GET",
-                    cors:''
+                    cors: ''
                 })
                     .then(response => response.json())
                     .then(async data => {
@@ -603,62 +603,47 @@ export default {
 
         </header>
         <div v-if="currentRoom" style="height:calc(100% - 100px)">
-            <div>
-                <div v-if="messages">
-                    <img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="" v-if="currentRoom.img == ''">
-                    <ul id="chat" class="p-1" style="height:100%; overflow-y: auto; font-size:13px;">
+            <img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="">
+            <div v-if="messages">
+                <ul id="chat" class="p-1" style="height:100%; overflow-y: auto; font-size:13px;">
 
-                        <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']"
-                            v-for="item in messages">
-                            <div :class="[profile.User.username == item.sender ? 'messagerow2' : 'messagerow']">
+                    <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']" v-for="item in messages">
+                        <div :class="[profile.User.username == item.sender ? 'messagerow2' : 'messagerow']">
 
-                                <div v-if="item.refer != ''">
-                                    <div class="viewrefer">
-                                        <p class="msgtitle">{{ item.refer }}</p>
-                                        <p class="msgcontent">{{ item.content2 }}</p>
-                                    </div>
+                            <div v-if="item.refer != ''">
+                                <div class="viewrefer">
+                                    <p class="msgtitle">{{ item.refer }}</p>
+                                    <p class="msgcontent">{{ item.content2 }}</p>
                                 </div>
+                            </div>
 
-                                <div class="msgheader">
-                                    <p class="msgtitle">{{ item.sender }}</p>
-                                    <div class="btn-group dropdown">
-                                        <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown"
-                                            aria-expanded="false">
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            <!-- Dropdown menu links -->
-                                            <li><a class="dropdown-item" href="#"
-                                                    @click="onReferMessage(item)">Responder</a></li>
-                                            <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar
-                                                    Mensaje</a></li>
-                                        </ul>
-                                    </div>
-                                    <!--<div class="dropdown ">
-                                                                                                                <button class="btn dropdown-toggle" type="button"
-                                                                                                                    id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
-
-                                                                                                                <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
-                                                                                                                    <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
-                                                                                                                    <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
-                                                                                                                    <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
-                                                                                                                </ul>
-                                                                                                            </div>-->
-                                    <!--<a class="icon_btn" @click="onReferMessage(item)">
-                                                                                                                    <i class="fa-solid fa-chevron-down"></i>
-                                                                                                                </a>-->
-                                </div>
-                                <div>
-                                    <div class="divmsgcontent">
-                                        <p class="msgcontent">{{ item.content }}
-                                        </p>
-                                        <small class="msgdate">{{ item.date }}</small>
-                                    </div>
+                            <div class="msgheader">
+                                <p class="msgtitle">{{ item.sender }}</p>
+                                <a href="#" class="m-1"  @click="copiar(item.content)"><i class="fa-solid fa-copy"></i></a>
+                                <a href="#"  @click="onReferMessage(item)"><i class="fa-solid fa-chevron-down"></i></a>
+                                <!--<div class="btn-group dropdown" style="height: 16px;">
+                                    <button type="button"  class="btn dropdown-toggle" data-bs-toggle="dropdown"
+                                        aria-expanded="false">
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a>
+                                        </li>
+                                        <li><a class="dropdown-item" href="#" >Copiar
+                                                Mensaje</a></li>
+                                    </ul>
+                                </div>-->
+                            </div>
+                            <div>
+                                <div class="divmsgcontent">
+                                    <p class="msgcontent">{{ item.content }}
+                                    </p>
+                                    <small class="msgdate">{{ item.date }}</small>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                    </ul>
-                </div>
+                </ul>
             </div>
 
             <!--<Messages :message="messages" />-->
@@ -926,6 +911,10 @@ export default {
     padding: 10px;
     background-color: #cdcebc;
     min-height: 60px;
+}
+
+.msgtitle{
+    text-transform: capitalize;
 }
 
 .msgcontent {

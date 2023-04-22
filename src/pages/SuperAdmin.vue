@@ -480,7 +480,7 @@ export default {
                     </button>
                 </div>
                 <div class="col-md-7 p-2">
-                    <div class="row">
+                    <div class="row text-center">
                         <div class="col-12 col-md-4"> <button type="button" class="btn btn-dark mr-3" @click="users()">
                                 Mostrar Usuarios
                             </button></div>
@@ -510,10 +510,10 @@ export default {
                 <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
             </div>
 
-            <table id="exampleC" class="table bg bg-light text-center p-1"
+            <table id="exampleC" class="table bg bg-light p-1"
                 style="font-size:15px; width: 100%; background:white;">
                 <thead v-if="mostrarUsuarios">
-                    <tr class="text-center">
+                    <tr>
                         <th>NAME</th>
                         <th>EMAIL</th>
                         <th>ROL</th>
@@ -541,7 +541,7 @@ export default {
                     </tr>
                 </tbody>
                 <thead v-if="mostrarGrupos">
-                    <tr class="text-center">
+                    <tr>
                         <th>NAME</th>
                         <th>STAFF</th>
                         <th>IMAGE</th>
@@ -564,7 +564,7 @@ export default {
                     </tr>
                 </tbody>
                 <thead v-if="mostrarLinks">
-                    <tr class="text-center">
+                    <tr>
                         <th>NAME</th>
                         <th>Room</th>
                         <th>LINK</th>
