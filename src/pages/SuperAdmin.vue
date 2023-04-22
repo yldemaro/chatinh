@@ -285,7 +285,7 @@ export default {
                                                     // console.log(data)
                                                     this.mostrarLink = true;
                                                     this.link = `${data.link}/${data.username}`;
-                                                    alertiy.alert(`Admin Agregado Con exitos`);
+                                                    alertify.alert(`Admin Agregado Con exitos`);
                                                     this.getAllUsers();
                                                     this.getAllRooms();
                                                     this.getAllLinks();

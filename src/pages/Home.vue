@@ -601,13 +601,9 @@ export default {
             </div>
 
         </header>
-        <div v-if="currentRoom" style="height:100%;">
+        <div v-if="currentRoom" style="height:cacl(100% - 100px)">
             <div>
                 <div v-if="messages">
-
-
-
-                    <img class="imgGrupo" :src="currentRoom.img" alt="" v-if="currentRoom.img != ''">
                     <img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="" v-if="currentRoom.img == ''">
                     <ul id="chat" class="p-1" style="height:100%; overflow-y: auto;">
 
@@ -811,6 +807,7 @@ export default {
     height: 100%;
     border: none;
     border-radius: 0;
+    background-color: white;
 }
 
 .members {
