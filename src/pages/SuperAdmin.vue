@@ -49,6 +49,12 @@ export default {
 
 
             this.profile = await JSON.parse(localStorage.getItem('profile'));
+            if(this.profile.User.role != 'superadmin'){
+                alertify.alert('Acceso Restringido','Usted no tiene Acceso a este link');
+                this.mostraBox = true;
+                localStorage.clear();
+                return;
+            }
             await this.getAllUsers();
 
 
@@ -71,6 +77,7 @@ export default {
                             if (!data) {
                                 localStorage.clear();
                                 this.mostraBox = true;
+                                return;
                             }
                         })
                 } catch (error) {
@@ -242,7 +249,7 @@ export default {
                             body: JSON.stringify(value)
                         }).then(response => response.json())
                             .then(async data => {
-                                console.log(data);
+                                // console.log(data);
                                 const value = {
                                     uid: null,
                                     name: this.username,
@@ -253,7 +260,7 @@ export default {
                                     members: [
                                         this.username
                                     ],
-                                    img: data.img,
+                                    img: url || '',
                                     status: false
                                 }
                                 if (data) {
@@ -278,7 +285,7 @@ export default {
                                                     // console.log(data)
                                                     this.mostrarLink = true;
                                                     this.link = `${data.link}/${data.username}`;
-                                                    alertity.alert(`Admin Agregado Con exitos`);
+                                                    alertiy.alert(`Admin Agregado Con exitos`);
                                                     this.getAllUsers();
                                                     this.getAllRooms();
                                                     this.getAllLinks();

@@ -89,11 +89,12 @@ export default {
             })
                 .then(response => response.json())
                 .then(async data => {
-                    // //(data);
-                    if (data) {
-                        const chatWindow = document.getElementById('chat');
-                        chatWindow.scrollTop = chatWindow?.scrollHeight + 60;
+
+                    if (!data) {
+                        return;
                     }
+                    const chatWindow = document.getElementById('chat');
+                    chatWindow.scrollTop = chatWindow?.scrollHeight + 60;
 
                 });
         },
@@ -108,18 +109,18 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
-                    // this.data = [];
+                    // console.log(data)
 
                     if (!data || data.message == "User dont have any room") {
                         this.rooms = [];
                         return;
                     }
-                    if (data.length === 1) {
-                        this.CurrentRoom(data[0])
-                    } else {
-                        this.rooms = data;
-                        this.CurrentRoom(this.rooms[0])
-                    }
+                    // if (data.length === 1) {
+                    //     this.CurrentRoom(data[1])
+                    // } else {
+                    this.rooms = data;
+                    this.CurrentRoom(this.rooms[0])
+                    // }
                     this.getMessages();
                 })
             this.getUsersNoAdmin();
@@ -127,9 +128,9 @@ export default {
 
         },
         async CurrentRoom(room) {
-            // //(room)
+            // console.log(room);
             this.currentRoom = room;
-            if (this.currentRoom) {
+            if (this.messages.length > 0) {
                 const chatWindow = document.getElementById('chat');
                 chatWindow.scrollTop = chatWindow.scrollHeight + 60;
             }
@@ -558,11 +559,11 @@ export default {
             <div class="showPart" data-bs-toggle="modal" data-bs-target="#staticBackdrop2" v-if="currentRoom">
                 <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=profile.User?.img />
                 <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
-                <div style="display:flex; align-items: center; flex-direction: column; margin-left:5px;">
+                <div style="display:flex; flex-direction: column; margin-left:5px;">
                     <h3>{{ currentRoom.name?.toUpperCase() }}</h3>
-                    <p class="text-secondary members"><span v-for="item in currentRoom.members?.join(', ')">{{ item
+                    <span class="text-secondary members"><span v-for="item in currentRoom.members?.join(', ')">{{ item
                     }}</span>
-                    </p>
+                    </span>
                 </div>
 
             </div>
@@ -607,8 +608,7 @@ export default {
 
 
                     <img class="imgGrupo" :src="currentRoom.img" alt="" v-if="currentRoom.img != ''">
-                    <img class="imgGrupo" style="width: 100%;height: 100%;" src="../assets/img/fondoDefault.jpeg" alt=""
-                        v-if="currentRoom.img == ''">
+                    <img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="" v-if="currentRoom.img == ''">
                     <ul id="chat" class="p-1" style="height:100%; overflow-y: auto;">
 
                         <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']"
@@ -637,18 +637,18 @@ export default {
                                         </ul>
                                     </div>
                                     <!--<div class="dropdown ">
-                                                                                                            <button class="btn dropdown-toggle" type="button"
-                                                                                                                id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                                                                                                                <button class="btn dropdown-toggle" type="button"
+                                                                                                                    id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
 
-                                                                                                            <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
-                                                                                                                <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
-                                                                                                                <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
-                                                                                                                <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
-                                                                                                            </ul>
-                                                                                                        </div>-->
+                                                                                                                <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
+                                                                                                                    <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
+                                                                                                                    <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
+                                                                                                                    <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
+                                                                                                                </ul>
+                                                                                                            </div>-->
                                     <!--<a class="icon_btn" @click="onReferMessage(item)">
-                                                                                                                <i class="fa-solid fa-chevron-down"></i>
-                                                                                                            </a>-->
+                                                                                                                    <i class="fa-solid fa-chevron-down"></i>
+                                                                                                                </a>-->
                                 </div>
                                 <div>
                                     <div class="divmsgcontent">
@@ -698,7 +698,7 @@ export default {
     <div class="container-full" v-if="mostrarAterrizaje">
         <div class="boxSeguridad">
             <div class="box">
-                <img src="../assets/img/caballos.jpg" alt="">
+                <img class="deslogueo" src="../assets/img/caballos.jpg" alt="">
                 <h3>Por motivos de seguridad espere el link de logueo</h3>
             </div>
         </div>
@@ -755,9 +755,9 @@ export default {
                 </div>
                 <div class="modal-body">
                     <ul class="list-group">
-                        <div v-for="item in currentRoom.members"
-                            style="display:flex; justify-content: space-around; align-items: center;">
-                            <li class="list-group-item">{{ item }} </li>
+                        <div class="mb-2 p-2" v-for="item in currentRoom.members"
+                            style="display:flex; justify-content: space-between; border:.4px solid #cecece; align-items: center;">
+                            <li class="list-group-item" style="border:none;">{{ item }} </li>
                             <button v-if="rol === 'admin'" :disabled="profile.User.username === item" class="btn btn-danger"
                                 @click="deleteMember(currentRoom.oid, item)"><i class="fa-solid fa-trash"></i></button>
                         </div>
@@ -803,12 +803,29 @@ export default {
     height: 100%;
 }
 
-.box{
+.fondoDefault {
+    position: absolute;
+    top: 0;
+    z-index: -10000;
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 0;
+}
+
+.members {
+    display: flex;
+    /* max-width: 60%;
+    width: 60%; */
+    overflow: hidden;
+}
+
+.box {
     justify-content: center;
     flex-direction: column;
 }
 
-.boxSeguridad img {
+.deslogueo {
     width: 250px;
     height: 250px;
     margin: auto;
@@ -926,7 +943,7 @@ export default {
     font-size: 10px;
 }
 
-.imgTitulo {
+.showPart .imgTitulo {
     width: 40px;
     height: 40px;
     border: 2px solid white;
@@ -934,7 +951,7 @@ export default {
 }
 
 .showPart {
-    width: 75%;
+    /* width: 75%; */
     cursor: pointer;
     display: flex;
 }

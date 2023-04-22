@@ -72,7 +72,7 @@ export default {
             })
                 .then(response => response.json())
                 .then(async data => {
-                    console.log(data);
+                    // console.log(data);
                     if (data) {
                         localStorage.setItem("profile", JSON.stringify(data))
                         // alertify.alert('', 'Usuario Logueado con exito', function () { alertify.success('Ok'); });
