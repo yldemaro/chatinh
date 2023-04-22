@@ -142,7 +142,8 @@ export default {
         getMessages() {
             setInterval(() => {
                 fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
-                    method: "GET"
+                    method: "GET",
+                    cors:''
                 })
                     .then(response => response.json())
                     .then(async data => {
@@ -998,8 +999,10 @@ export default {
     background-color: white;
     padding: 5px;
     border-radius: 8px;
-    border-right: 2px solid #00a884;
+    border-right: 1px solid #00a884;
     margin: 2px 0 2px 10px;
+    line-height: 1;
+    width: 85%;
 }
 
 .messagerow2 {
@@ -1008,8 +1011,9 @@ export default {
     padding: 5px;
     border-radius: 8px;
     display: inline-block;
-    border-left: 2px solid white;
+    border-left: 1px solid white;
     margin: 2px 10px 2px 0;
+    line-height: 1;
 }
 
 .alignDer {
