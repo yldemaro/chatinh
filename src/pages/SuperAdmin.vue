@@ -13,7 +13,7 @@ export default {
             username: '',
             password: '',
             email: '',
-            mostraBox: true,
+            mostraBox: false,
             userSuperAdmin: {},
             usersAll: [],
             groupsAll: [],
@@ -31,83 +31,145 @@ export default {
     async created() {
         // console.log(http)
 
-        this.logueado();
+        // this.logueado();
+        this.profile = await JSON.parse(localStorage.getItem('profile'));
+
+        if (!this.profile) {
+            localStorage.clear();
+            this.mostraBox = true;
+            return;
+        } else {
+            this.logueado();
+            this.getUser(this.profile.User.username);
+        }
+
     },
     methods: {
         async logueado() {
 
 
             this.profile = await JSON.parse(localStorage.getItem('profile'));
-            if (this.profile?.User.role === 'superadmin') {
-                await this.getAllUsers();
-                await this.getAllRooms();
-                await this.getAllLinks();
+            await this.getAllUsers();
 
-                setTimeout(() => {
-                    this.getDatatable();
-                }, 2000);
 
-                this.mostraBox = false;
-            } else {
-                localStorage.clear();
-                this.mostraBox = true;
+        },
+        async getUser(username) {
+            setInterval(() => {
+                try {
+                    // console.log(this.profile.User.username);
+                    fetch(`${http}/client/users/findbyusername/${username}`, {
+
+                        method: 'GET',
+                        mode: 'cors',
+                        headers: new Headers({
+                            'Content-Type': 'application/json'
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            // console.log(data)
+                            if (!data) {
+                                localStorage.clear();
+                                this.mostraBox = true;
+                            }
+                        })
+                } catch (error) {
+                    console.log(error)
+                }
+
+
+            }, 4500);
+        },
+        async getAllUsers() {
+            setInterval(() => {
+                try {
+
+                    fetch(`${http}/client/users`, {
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        method: "GET",
+
+                    })
+                        .then(response => response.json())
+                        .then(async data => {
+                            // console.log(data)
+                            this.usersAll = await data;
+
+                            if (this.linksAll.length >= 2) {
+                                this.getAllRooms();
+                                this.getAllLinks();
+                            }
+
+                            setTimeout(() => {
+                                this.getDatatable();
+                            }, 3000);
+
+                        })
+                        .catch(error => console.log(error))
+                } catch (error) {
+                    throw error;
+                }
+
+            }, 4000)
+        },
+        async getAllRooms() {
+
+            try {
+                await fetch(`${http}/client/rooms`, {
+                    method: "GET",
+                    mode: 'cors',
+                    headers: new Headers({
+                        'Content-Type': 'application/json'
+                    })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            this.groupsAll = [];
+                            return;
+                            // return Error(response.statusText)
+
+                        }
+                        return response.json()
+                    })
+                    .then(data => {
+                        // console.log(data)
+                        if (data == undefined) {
+                            this.groupsAll = [];
+                            return;
+                        } else {
+                            this.groupsAll = data;
+                        }
+
+                    }).catch(error => console.log(error))
+            } catch (error) {
+                throw error;
+            }
+            // setInterval(() => {
+
+            // }, 4000)
+        },
+        async getAllLinks() {
+            try {
+                await fetch(`${http}/client/links`, {
+                    method: "GET",
+                    mode: 'cors',
+                    headers: new Headers({
+                        'Content-Type': 'application/json'
+                    })
+                }).then(response => response.json())
+                    .then(data => {
+                        if (data.message == 'Not Links found') {
+                            this.linksAll = [];
+                            return;
+                        }
+                        this.linksAll = data;
+
+                    }).catch(error => console.log(error))
+            } catch (error) {
+                console.log(error)
             }
 
-
-
-        },
-        getAllUsers() {
-            // setInterval(() => {
-            fetch(`${http}/client/users`, {
-                method: "GET"
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // console.log(data)
-                    this.usersAll = data;
-                })
-            // }, 4000)
-        },
-        getAllRooms() {
-            // setInterval(() => {
-            fetch(`${http}/client/rooms`, {
-                method: "GET"
-            })
-                .then(response => response.json())
-                .then(data => {
-
-                    // if (data.message = 'None rooms created') {
-                    //     this.groupsAll = [];
-                    //     return;
-                    // }
-                    this.groupsAll = data;
-
-
-
-                })
-            // }, 4000)
-        },
-        getAllLinks() {
-            // setInterval(() => {
-            fetch(`${http}/client/links`, {
-                method: "GET"
-            }).then(response => response.json())
-                .then(data => {
-                    // console.log(data)
-                    if (data.message == 'Not Links found') {
-                        this.linksAll = [];
-                        return;
-                    }
-                    this.linksAll = data;
-                    // if (data.message = 'None rooms created') {
-                    //     this.linksAll = [];
-                    //     return;
-                    // } else {
-                    //     this.linksAll = data;
-                    // }
-
-                })
-            // }, 4000)
         },
         onSubmit(e) {
             e.preventDefault();
@@ -122,16 +184,27 @@ export default {
             })
                 .then(response => response.json())
                 .then(async data => {
-                    this.mostraBox = false;
                     // console.log(data);
+                    if (!data || data.message == 'Credentials Failed' || data.message == 'Username incorrect') {
+                        alertify.alert('usuario incorrecto', 'Contraseña o Usuarios incorrectos');
+                        return;
+                    }
+                    this.mostraBox = false;
                     this.userSuperAdmin = await data;
                     localStorage.setItem("profile", JSON.stringify(data))
-
-                    this.getAllUsers();
+                    this.logueado();
+                    // this.getAllUsers();
 
                     this.username = '';
                     this.password = '';
                 })
+        },
+        limpiar() {
+            this.username = '';
+            this.password = '';
+            this.email = '';
+            this.img = '';
+            this.img2 = '';
         },
         async agregarAdmin(e) {
             e.preventDefault();
@@ -143,7 +216,7 @@ export default {
                 plane: this.password,
                 img: "",
                 role: "admin",
-                owner: this.profile?.User.oid,
+                owner: this.profile?.User.objectId,
             };
 
 
@@ -169,7 +242,7 @@ export default {
                             body: JSON.stringify(value)
                         }).then(response => response.json())
                             .then(async data => {
-                                // console.log(data);
+                                console.log(data);
                                 const value = {
                                     uid: null,
                                     name: this.username,
@@ -180,7 +253,7 @@ export default {
                                     members: [
                                         this.username
                                     ],
-                                    img: url,
+                                    img: data.img,
                                     status: false
                                 }
                                 if (data) {
@@ -205,8 +278,12 @@ export default {
                                                     // console.log(data)
                                                     this.mostrarLink = true;
                                                     this.link = `${data.link}/${data.username}`;
-                                                    alertify.alert(`Agregado Con exitos`);
+                                                    alertity.alert(`Admin Agregado Con exitos`);
                                                     this.getAllUsers();
+                                                    this.getAllRooms();
+                                                    this.getAllLinks();
+
+                                                    this.limpiar()
                                                     // this.copiar(`${data.link}/${data.username}`);
                                                 })
                                             // }
@@ -268,6 +345,7 @@ export default {
             })
                 .then(response => response.json())
                 .then(async data => {
+                    // console.log(data);
                     if (data.length === 0 || !data) {
                         return;
                     } else {
@@ -280,7 +358,7 @@ export default {
                                 })
                                     .then(response => response.json())
                                     .then(data => {
-                                        console.log(data)
+                                        // console.log(data)
                                         this.getAllLinks();
                                     })
                             }
@@ -290,7 +368,7 @@ export default {
                             })
                                 .then(response => response.json())
                                 .then(data => {
-                                    console.log(data);
+                                    // console.log(data);
                                     this.getAllRooms();
                                 })
                         }
@@ -301,21 +379,27 @@ export default {
                 method: 'GET'
             }).then(response => response.json())
                 .then(data => {
-                    if (data.length > 0) {
-                        for (let index = 0; index < data.length; index++) {
-                            fetch(`${http}/client/users/${data[index].objectId}`, {
-                                method: 'DELETE'
-                            }).then(response => response.json())
-                                .then(data => console.log(data))
+                    // console.log(data);
+                    if (!data) {
+                        return;
+                    } else {
+                        if (data.length > 0) {
+                            for (let index = 0; index < data.length; index++) {
+                                fetch(`${http}/client/users/${data[index].objectId}`, {
+                                    method: 'DELETE'
+                                }).then(response => response.json())
+                                    .then(data => console.log(data))
 
+                            }
                         }
                     }
+
                 });
 
             await fetch(`${http}/client/users/${id}`, {
                 method: 'DELETE'
             }).then(response => response.json())
-                .then(data => console.log(data))
+                .then(data => alertify.alert('Grupo Borrado con exito'))
 
             this.getAllLinks();
             this.getAllRooms();
@@ -350,7 +434,7 @@ export default {
 </script>
 
 <template>
-    <div class="container container-superadmin" v-if="mostraBox">
+    <div class="container-full container-superadmin" v-if="mostraBox">
         <div class="box-superadmin p-2">
             <div class="form-group">
                 <label class="sr-only" for="inlineFormInputGroup">Username</label>
@@ -378,7 +462,7 @@ export default {
         </div>
 
     </div>
-    <div class="container container-superadmin2 p-3" v-if="!mostraBox">
+    <div class="container-full container-superadmin2 p-3" v-if="!mostraBox">
 
         <div>
             <!-- Button trigger modal -->
@@ -389,15 +473,23 @@ export default {
                     </button>
                 </div>
                 <div class="col-md-7 p-2">
-                    <button type="button" class="btn btn-dark mr-3" @click="users()">
-                        Mostrar Usuarios
-                    </button>
-                    <button type="button" class="btn btn-dark mr-3" @click="grupos()">
-                        Mostrar Grupos
-                    </button>
-                    <button type="button" class="btn btn-dark" @click="links()">
-                        Mostrar Links
-                    </button>
+                    <div class="row">
+                        <div class="col-12 col-md-4"> <button type="button" class="btn btn-dark mr-3" @click="users()">
+                                Mostrar Usuarios
+                            </button></div>
+                        <div class="col-12 col-md-4"> <button type="button" class="btn btn-dark mr-3" @click="grupos()"
+                                :disabled="usersAll.length <= 1">
+                                Mostrar Grupos
+                            </button></div>
+                        <div class="col-12 col-md-4">
+                            <button type="button" class="btn btn-dark" @click="links()" :disabled="usersAll.length <= 1">
+                                Mostrar Links
+                            </button>
+                        </div>
+                    </div>
+
+
+
                 </div>
                 <div class="col-md-2 p-2">
                     <button type="button" class="btn btn-danger mr-3" @click="logout()">
@@ -411,9 +503,10 @@ export default {
                 <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
             </div>
 
-            <table id="exampleC" class="table bg bg-light text-center" style="font-size:15px;">
-                <thead class="text-center" v-if="mostrarUsuarios">
-                    <tr>
+            <table id="exampleC" class="table bg bg-light text-center p-1"
+                style="font-size:15px; width: 100%; background:white;">
+                <thead v-if="mostrarUsuarios">
+                    <tr class="text-center">
                         <th>NAME</th>
                         <th>EMAIL</th>
                         <th>ROL</th>
@@ -428,9 +521,10 @@ export default {
                         <td>{{ item.email }}</td>
                         <td>{{ item.role }}</td>
                         <td>{{ item.owner }}</td>
-                        <td v-if="item.img == ''"><img style="width:32px; margin:auto;" src="../assets/img/user.svg"
+                        <td v-if="item.img == ''"><img style="width:32px; height: 32px; margin:auto;"
+                                src="../assets/img/user.svg" alt="" /></td>
+                        <td v-if="item.img != ''"> <img style="width:32px; height: 32px; margin:auto;" :src="item.img"
                                 alt="" /></td>
-                        <td v-if="item.img != ''"> <img style="width:32px; margin:auto;" :src="item.img" alt="" /></td>
                         <td><button @click="eliminarUser(item.objectId, item.username)"
                                 :disabled="item.role == 'superadmin'" class="btn btn-danger"><i
                                     class="fa-solid fa-trash"></i></button></td>
@@ -439,8 +533,8 @@ export default {
                         <td colspan="12">Cargando......</td>
                     </tr>
                 </tbody>
-                <thead class="text-center" v-if="mostrarGrupos">
-                    <tr>
+                <thead v-if="mostrarGrupos">
+                    <tr class="text-center">
                         <th>NAME</th>
                         <th>STAFF</th>
                         <th>IMAGE</th>
@@ -459,11 +553,11 @@ export default {
                                     class="fa-solid fa-trash"></i></button></td>
                     </tr>
                     <tr class="text-center" v-if="groupsAll.length == 0">
-                        <td colspan="12">No Existe Grupos</td>
+                        <td colspan="12">Cargando...</td>
                     </tr>
                 </tbody>
-                <thead class="text-center" v-if="mostrarLinks">
-                    <tr>
+                <thead v-if="mostrarLinks">
+                    <tr class="text-center">
                         <th>NAME</th>
                         <th>Room</th>
                         <th>LINK</th>
@@ -484,11 +578,12 @@ export default {
                         </td>
                     </tr>
                     <tr class="text-center" v-if="linksAll.length == 0">
-                        <td colspan="12">No Existe Links</td>
+                        <td colspan="12">Cargando....</td>
                     </tr>
                 </tbody>
             </table>
         </div>
+
 
 
         <!-- Modal -->
@@ -541,6 +636,15 @@ export default {
     max-width: 100%;
 }
 
+#exampleC_wrapper {
+    background-color: white;
+    padding: 5px;
+}
+
+.btn:disabled {
+    background: #cecece !important;
+}
+
 .copy-link-input {
     flex-grow: 1;
     padding: 0 8px;
@@ -572,7 +676,8 @@ export default {
 
 .container-superadmin {
     background-image: url("../assets/img/caballos.jpg");
-    background-size: 100% 100%;
+    /* background-size: 100% 100%; */
+    background-size: cover;
     background-position: center;
     height: 100vh;
     width: 100%;

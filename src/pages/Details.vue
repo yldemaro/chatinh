@@ -1,4 +1,14 @@
-<template></template>
+<template>
+    <div class="container-full" v-if="mostrarAterrizaje">
+        <div class="boxSeguridad">
+            <div class="box">
+                <img src="../assets/img/caballos.jpg" alt="">
+                <h3>Por motivos de seguridad espere el link de logueo</h3>
+            </div>
+
+        </div>
+    </div>
+</template>
 
 
 <script>
@@ -13,7 +23,8 @@ export default {
             user: {
                 username: '',
                 password: ''
-            }
+            },
+            mostrarAterrizaje: false
         }
     },
     created() {
@@ -30,13 +41,20 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
-                    // console.log(data)
-                    this.user = {
-                        username: data.username,
-                        password: data.plane
-                    };
 
-                    this.loguearse(data.username, data.plane);
+                    if (data.message == 'User not found' || !data) {
+                        this.mostrarAterrizaje = true;
+                        // alert('usted no se encuentra asignado a ningun grupo');
+                        return;
+                    } else {
+                        this.user = {
+                            username: data.username,
+                            password: data.plane
+                        };
+
+                        this.loguearse(data.username, data.plane);
+                    }
+
                 })
         },
         loguearse(username, password) {
@@ -54,7 +72,7 @@ export default {
             })
                 .then(response => response.json())
                 .then(async data => {
-                    // console.log(data);
+                    console.log(data);
                     if (data) {
                         localStorage.setItem("profile", JSON.stringify(data))
                         // alertify.alert('', 'Usuario Logueado con exito', function () { alertify.success('Ok'); });
@@ -75,3 +93,28 @@ export default {
 
 
 </script>
+
+<style>
+.boxSeguridad {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.box{
+    justify-content: center;
+    flex-direction: column;
+}
+
+img {
+    width: 250px;
+    height: 250px;
+    margin: auto;
+    margin-bottom: 10px;
+    border-radius: 50%;
+    border: 2px solid gray;
+    box-shadow: 0px 2px 19px 0px;
+}
+</style>

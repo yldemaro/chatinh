@@ -7,8 +7,6 @@ import { http } from '../http/apihttp';
 import firebase from "firebase";
 import { Clipboard } from "v-clipboard";
 
-import { db } from '../firebase';
-
 export default {
 
     data() {
@@ -44,26 +42,46 @@ export default {
     },
     created() {
         this.logueado();
-        this.fetchMessages();
-
-
-
         // this.obtenerScrollChat();
     },
     methods: {
         async logueado() {
             this.profile = await JSON.parse(localStorage.getItem("profile"));
-            if (this.profile.User.role != 'superadmin') {
-                this.Rol(this.profile.User.role)
-                this.obtenerRooms();
-            } else {
-                alertify.alert('No puede entrar por motivos de seguridad')
-                // this.$router.push('https://google.com.ve')
+            if (!this.profile) {
+                //('entro aqui')
                 this.mostrarAterrizaje = true;
-                return;
-            }
+                alertify.alert('No puede entrar por motivos de seguridad');
 
-            // //(this.profile);
+                return;
+            } else {
+                if (this.profile?.User.role != 'superadmin') {
+                    this.Rol(this.profile?.User.role);
+                    this.obtenerRooms();
+                    this.fetchMessages();
+                    // this.getUser();
+                } else {
+                    this.$router.push('/superadmin')
+                }
+            }
+        },
+        async getUser() {
+            setInterval(() => {
+                //(this.profile?.User.username);
+                if (!this.profile) {
+                    localStorage.clear()
+                    return;
+                } else {
+                    fetch(`${http}/client/users/findbyusername/${this.profile?.User.username}`, {
+                        method: 'GET'
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            //(data)
+                        })
+                }
+
+
+            }, 3000);
         },
         async fetchMessages() {
             fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
@@ -72,8 +90,11 @@ export default {
                 .then(response => response.json())
                 .then(async data => {
                     // //(data);
-                    const chatWindow = document.getElementById('chat');
-                    chatWindow.scrollTop = chatWindow?.scrollHeight + 60;
+                    if (data) {
+                        const chatWindow = document.getElementById('chat');
+                        chatWindow.scrollTop = chatWindow?.scrollHeight + 60;
+                    }
+
                 });
         },
         async Rol(rol) {
@@ -82,7 +103,7 @@ export default {
         },
         async obtenerRooms() {
             // setInterval(async () => {
-            await fetch(`${http}/client/rooms/findroombyusername/${this.profile.User.username}`, {
+            await fetch(`${http}/client/rooms/findroombyusername/${this.profile?.User.username}`, {
                 method: "POST"
             })
                 .then(response => response.json())
@@ -214,7 +235,7 @@ export default {
                 plane: this.member.password,
                 img: "",
                 role: "member",
-                owner: this.profile.User.objectId
+                owner: this.profile.User?.objectId
             };
             const storageRef = firebase
                 .storage()
@@ -282,12 +303,19 @@ export default {
                                                     body: JSON.stringify(value)
                                                 })
                                                     .then(response => response.json())
-                                                    .then(data => {
+                                                    .then(async data => {
                                                         // //(data);
                                                         // this.link = data.link;
                                                         this.mostrarLink = true;
-                                                        this.link = `${data.link}/${data.username}`;
+                                                        this.link = await `${data.link}/${data.username}`;
                                                         this.obtenerRooms();
+
+                                                        this.member = {
+                                                            username: '',
+                                                            password: '',
+                                                            email: '',
+                                                            plane: ''
+                                                        }
 
                                                         // alert("Miembro Agregado Correctamente", `${data.link}/${data.username}`)
 
@@ -300,6 +328,7 @@ export default {
                             })
                     })
                 })
+
         },
         onReferMessage(msg) {
             // //(msg)
@@ -498,6 +527,7 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
+                    // //(data)
                     this.room = data;
 
 
@@ -509,6 +539,7 @@ export default {
             // //(valor)
             Clipboard.copy(valor);
             this.mostrarLink = false;
+            this.link = '';
         }
     }
 }
@@ -536,12 +567,12 @@ export default {
 
             </div>
             <div style="display: flex;">
-                <a v-if="rol === 'admin' && room.length > 1" className="btn  btn-danger text-white mr-1"
+                <a v-if="rol === 'admin' && currentRoom.members?.length > 1" className="btn  btn-danger text-white mr-1"
                     @click="handleChat">
                     <i class="fa-sharp fa-regular fa-circle-stop"></i>
                 </a>
-                <a v-if="rol === 'admin' && room.length > 1" className="btn btn-success  text-white" data-bs-toggle="modal"
-                    data-bs-target="#staticBackdrop3">
+                <a v-if="rol === 'admin' && currentRoom.members?.length > 1" className="btn btn-success  text-white"
+                    data-bs-toggle="modal" data-bs-target="#staticBackdrop3">
                     <i class="fa-solid fa-money-bill"></i>
                 </a>
                 <div class="dropdown" v-if="rol == 'admin'">
@@ -606,18 +637,18 @@ export default {
                                         </ul>
                                     </div>
                                     <!--<div class="dropdown ">
-                                                                                <button class="btn dropdown-toggle" type="button"
-                                                                                    id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                                                                                                            <button class="btn dropdown-toggle" type="button"
+                                                                                                                id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false"></button>
 
-                                                                                <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
-                                                                                    <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
-                                                                                    <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
-                                                                                    <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
-                                                                                </ul>
-                                                                            </div>-->
+                                                                                                            <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
+                                                                                                                <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a></li>
+                                                                                                                <li><a class="dropdown-item" href="#" @click="copiar(item.content)">Copiar Mensaje</a></li>
+                                                                                                                <li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>
+                                                                                                            </ul>
+                                                                                                        </div>-->
                                     <!--<a class="icon_btn" @click="onReferMessage(item)">
-                                                                                    <i class="fa-solid fa-chevron-down"></i>
-                                                                                </a>-->
+                                                                                                                <i class="fa-solid fa-chevron-down"></i>
+                                                                                                            </a>-->
                                 </div>
                                 <div>
                                     <div class="divmsgcontent">
@@ -666,7 +697,10 @@ export default {
 
     <div class="container-full" v-if="mostrarAterrizaje">
         <div class="boxSeguridad">
-            <h3>Por motivos de seguridad espere el link de logueo</h3>
+            <div class="box">
+                <img src="../assets/img/caballos.jpg" alt="">
+                <h3>Por motivos de seguridad espere el link de logueo</h3>
+            </div>
         </div>
     </div>
 
@@ -769,6 +803,56 @@ export default {
     height: 100%;
 }
 
+.box{
+    justify-content: center;
+    flex-direction: column;
+}
+
+.boxSeguridad img {
+    width: 250px;
+    height: 250px;
+    margin: auto;
+    margin-bottom: 10px;
+    border-radius: 50%;
+    border: 2px solid gray;
+    box-shadow: 0px 2px 19px 0px;
+}
+
+.copy-link {
+    height: 36px;
+    display: flex;
+    max-width: 100%;
+}
+
+.copy-link-input {
+    flex-grow: 1;
+    padding: 0 8px;
+    border: 1px solid #ccc;
+    border-right: none;
+    outline: none;
+}
+
+.copy-link-input:hover {
+    background: #eee;
+}
+
+.copy-link-button {
+    flex-shrink: 0;
+    width: 60px;
+    height: var(--height);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ddd;
+    color: #333;
+    outline: none;
+    border: 1px solid #eee;
+}
+
+.copy-link-button:hover {
+    background: #ccc;
+}
+
 .container-full {
     display: flex;
     flex-direction: column;
@@ -820,8 +904,8 @@ export default {
 
 .header {
     display: flex;
-    flex-direction: row;
-    /* justify-content: space-between; */
+    /* flex-direction: row; */
+    justify-content: space-between;
     align-items: center;
     margin: 0px;
     padding: 10px;
@@ -945,7 +1029,7 @@ export default {
     padding: 10px;
     border: none;
     border-radius: 8px;
-    background: #d1d7http;
+    background: #d1d7db;
     width: 100%;
 }
 
