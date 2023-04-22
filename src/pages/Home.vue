@@ -602,11 +602,11 @@ export default {
             </div>
 
         </header>
-        <div v-if="currentRoom" style="height:cacl(100% - 100px)">
+        <div v-if="currentRoom" style="height:calc(100% - 100px)">
             <div>
                 <div v-if="messages">
                     <img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="" v-if="currentRoom.img == ''">
-                    <ul id="chat" class="p-1" style="height:100%; overflow-y: auto;">
+                    <ul id="chat" class="p-1" style="height:100%; overflow-y: auto; font-size:13px;">
 
                         <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']"
                             v-for="item in messages">
@@ -997,7 +997,7 @@ export default {
 
 .messagerow {
     background-color: white;
-    padding: 5px;
+    padding: 2px;
     border-radius: 8px;
     border-right: 1px solid #00a884;
     margin: 2px 0 2px 10px;
@@ -1008,7 +1008,7 @@ export default {
 .messagerow2 {
     background-color: #a9f5d1;
     /* width: 200px; */
-    padding: 5px;
+    padding: 2px;
     border-radius: 8px;
     display: inline-block;
     border-left: 1px solid white;
