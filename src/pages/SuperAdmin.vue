@@ -49,8 +49,8 @@ export default {
 
 
             this.profile = await JSON.parse(localStorage.getItem('profile'));
-            if(this.profile.User.role != 'superadmin'){
-                alertify.alert('Acceso Restringido','Usted no tiene Acceso a este link');
+            if (this.profile.User.role != 'superadmin') {
+                alertify.alert('Acceso Restringido', 'Usted no tiene Acceso a este link');
                 this.mostraBox = true;
                 localStorage.clear();
                 return;
@@ -89,34 +89,34 @@ export default {
         },
         async getAllUsers() {
             // setInterval(() => {
-                try {
+            try {
 
-                    fetch(`${http}/client/users`, {
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        method: "GET",
+                fetch(`${http}/client/users`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    method: "GET",
+
+                })
+                    .then(response => response.json())
+                    .then(async data => {
+                        // console.log(data)
+                        this.usersAll = await data;
+
+                        // if (this.linksAll.length >= 2) {
+                        //     this.getAllRooms();
+                        //     this.getAllLinks();
+                        // }
+
+                        setTimeout(() => {
+                            this.getDatatable();
+                        }, 3000);
 
                     })
-                        .then(response => response.json())
-                        .then(async data => {
-                            // console.log(data)
-                            this.usersAll = await data;
-
-                            // if (this.linksAll.length >= 2) {
-                            //     this.getAllRooms();
-                            //     this.getAllLinks();
-                            // }
-
-                            setTimeout(() => {
-                                this.getDatatable();
-                            }, 3000);
-
-                        })
-                        .catch(error => console.log(error))
-                } catch (error) {
-                    throw error;
-                }
+                    .catch(error => console.log(error))
+            } catch (error) {
+                throw error;
+            }
 
             // }, 4000)
         },
@@ -192,18 +192,27 @@ export default {
                 .then(response => response.json())
                 .then(async data => {
                     // console.log(data);
-                    if (!data || data.message == 'Credentials Failed' || data.message == 'Username incorrect') {
-                        alertify.alert('usuario incorrecto', 'Contraseña o Usuarios incorrectos');
+                    if (data.User.role != 'superadmin') {
+                        // console.log('entro aqui')
+                        alertify.alert('usuario sin autorizar', 'Solamente para administradores');
+                        this.username = '';
+                        this.password = '';
                         return;
-                    }
-                    this.mostraBox = false;
-                    this.userSuperAdmin = await data;
-                    localStorage.setItem("profile", JSON.stringify(data))
-                    this.logueado();
-                    // this.getAllUsers();
+                    } else {
+                        if (!data || data.message == 'Credentials Failed' || data.message == 'Username incorrect') {
+                            alertify.alert('usuario incorrecto', 'Contraseña o Usuarios incorrectos');
+                            return;
+                        }
+                        this.mostraBox = false;
+                        this.userSuperAdmin = await data;
+                        localStorage.setItem("profile", JSON.stringify(data))
+                        this.logueado();
+                        // this.getAllUsers();
 
-                    this.username = '';
-                    this.password = '';
+                        this.username = '';
+                        this.password = '';
+                    }
+
                 })
         },
         limpiar() {
@@ -366,7 +375,7 @@ export default {
                                     .then(response => response.json())
                                     .then(data => {
                                         // console.log(data)
-                                        this.getAllLinks();
+                                        // this.getAllLinks();
                                     })
                             }
 
@@ -376,7 +385,7 @@ export default {
                                 .then(response => response.json())
                                 .then(data => {
                                     // console.log(data);
-                                    this.getAllRooms();
+                                    // this.getAllRooms();
                                 })
                         }
                     }
@@ -408,8 +417,8 @@ export default {
             }).then(response => response.json())
                 .then(data => alertify.alert('Grupo Borrado con exito'))
 
-            this.getAllLinks();
-            this.getAllRooms();
+            // this.getAllLinks();
+            // this.getAllRooms();
             this.getAllUsers();
         },
         eliminarLink(id) {
@@ -510,8 +519,7 @@ export default {
                 <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
             </div>
 
-            <table id="exampleC" class="table bg bg-light p-1"
-                style="font-size:15px; width: 100%; background:white;">
+            <table id="exampleC" class="table bg bg-light p-1" style="font-size:15px; width: 100%; background:white;">
                 <thead v-if="mostrarUsuarios">
                     <tr>
                         <th>NAME</th>
