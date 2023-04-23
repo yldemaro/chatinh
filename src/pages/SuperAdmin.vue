@@ -561,9 +561,9 @@ export default {
                     <tr v-if="groupsAll.length > 0" v-for="(item, index) in groupsAll" :key="item.objectId">
                         <td>{{ item.name }}</td>
                         <td>{{ item.staff }}</td>
-                        <td v-if="item.img == ''"><img style="width:32px; margin:auto;" src="../assets/img/user.svg"
+                        <td v-if="item.img == ''"><img style="width:32px; height:32px; margin:auto;" src="../assets/img/user.svg"
                                 alt="" /></td>
-                        <td v-if="item.img != ''"> <img style="width:32px; margin:auto;" :src="item.img" alt="" /></td>
+                        <td v-if="item.img != ''"> <img style="width:32px; height:32px; margin:auto;" :src="item.img" alt="" /></td>
                         <td> <button class="btn btn-danger" @click="eliminarRoom(item.oid)"><i
                                     class="fa-solid fa-trash"></i></button></td>
                     </tr>

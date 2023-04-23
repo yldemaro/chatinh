@@ -23,7 +23,7 @@ export default {
             chat: '',
             saldo: '',
             referMsg: "",
-            memberAgregado:'',
+            memberAgregado: '',
             member: {
                 username: '',
                 password: '',
@@ -40,8 +40,8 @@ export default {
             mostrarLink: false,
             mostrarAterrizaje: false,
             mostrarInfo: false,
-            mostrarInfoDel:false,
-            memberBorrado:''
+            mostrarInfoDel: false,
+            memberBorrado: ''
         }
     },
     created() {
@@ -278,7 +278,7 @@ export default {
                                     body: JSON.stringify(addRoom)
                                 }).then(response => response.json())
                                     .then(data => {
-                                        this.memberAgregado=this.member.username;
+                                        this.memberAgregado = this.member.username;
                                         this.mostrarInfo = true;
                                         const valueRoom = {
                                             uid: '',
@@ -322,7 +322,7 @@ export default {
                                                             email: '',
                                                             plane: ''
                                                         }
-                                                        e.target.value='';
+                                                        e.target.value = '';
                                                     })
                                             })
 
@@ -522,8 +522,8 @@ export default {
                     body: JSON.stringify(value)
                 }).then(response => response.json())
                     .then(data => {
-                        this.memberBorrado=person;
-                        this.mostrarInfoDel=true;
+                        this.memberBorrado = person;
+                        this.mostrarInfoDel = true;
                         this.obtenerRoom();
                     });
             }
@@ -610,6 +610,9 @@ export default {
         <div v-if="currentRoom" style="height:calc(100% - 100px); overflow-y: auto;">
             <img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="">
             <div v-if="messages">
+                <div class="text-center" v-if="mostrarInfo">{{ memberAgregado }} fue agregada al grupo</div>
+                <div class="text-center" v-if="mostrarInfoDel">{{ memberBorrado }} fue eliminada del grupo</div>
+
                 <ul id="chat" class="p-1" style="height:100%; overflow-y: auto; font-size:13px;">
 
                     <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']" v-for="item in messages">
@@ -643,8 +646,6 @@ export default {
                         </div>
 
                     </div>
-                    <div class="text-center" v-if="mostrarInfo">{{ memberAgregado }} fue agregada al grupo</div>
-                    <div class="text-center" v-if="mostrarInfoDel">{{memberBorrado}} fue eliminada del grupo</div>
                 </ul>
             </div>
 
