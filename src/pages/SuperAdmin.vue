@@ -88,7 +88,7 @@ export default {
             }, 4500);
         },
         async getAllUsers() {
-            setInterval(() => {
+            // setInterval(() => {
                 try {
 
                     fetch(`${http}/client/users`, {
@@ -118,7 +118,7 @@ export default {
                     throw error;
                 }
 
-            }, 4000)
+            // }, 4000)
         },
         async getAllRooms() {
 
@@ -447,7 +447,7 @@ export default {
                 <label class="sr-only" for="inlineFormInputGroup">Username</label>
                 <div class="input-group mb-2">
                     <div class="input-group-prepend">
-                        <div class="input-group-text">@</div>
+                        <div class="input-group-text" style="height:100%;"><i class="fa-regular fa-user"></i></div>
                     </div>
                     <input type="text" class="form-control" v-model="username" id="inlineFormInputGroup"
                         placeholder="Username">
@@ -457,7 +457,7 @@ export default {
                 <label class="sr-only" for="password">Password</label>
                 <div class="input-group mb-2">
                     <div class="input-group-prepend">
-                        <div class="input-group-text">@</div>
+                        <div class="input-group-text" style="height:100%;"><i class="fa-solid fa-key"></i></div>
                     </div>
                     <input type="password" class="form-control" v-model="password" name="password" placeholder="Password">
                 </div>
@@ -473,7 +473,7 @@ export default {
 
         <div>
             <!-- Button trigger modal -->
-            <div class="row mb-3 p-2 bg bg-secondary">
+            <div class="row mb-3 p-2 text-center bg bg-secondary">
                 <div class="col-md-3 p-2">
                     <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
                         Agregar Administrador
@@ -481,14 +481,14 @@ export default {
                 </div>
                 <div class="col-md-7 p-2">
                     <div class="row text-center">
-                        <div class="col-12 col-md-4"> <button type="button" class="btn btn-dark mr-3" @click="users()">
+                        <div class="col-12 col-md-4 mb-1"> <button type="button" class="btn btn-dark mr-3" @click="users()">
                                 Mostrar Usuarios
                             </button></div>
-                        <div class="col-12 col-md-4"> <button type="button" class="btn btn-dark mr-3" @click="grupos()"
+                        <div class="col-12 col-md-4 mb-1"> <button type="button" class="btn btn-dark mr-3" @click="grupos()"
                                 :disabled="usersAll.length <= 1">
                                 Mostrar Grupos
                             </button></div>
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-4 mb-1">
                             <button type="button" class="btn btn-dark" @click="links()" :disabled="usersAll.length <= 1">
                                 Mostrar Links
                             </button>
@@ -498,7 +498,7 @@ export default {
 
 
                 </div>
-                <div class="col-md-2 p-2">
+                <div class="col-12 col-md-2 p-2">
                     <button type="button" class="btn btn-danger mr-3" @click="logout()">
                         Logout
                     </button>
@@ -646,6 +646,8 @@ export default {
 #exampleC_wrapper {
     background-color: white;
     padding: 5px;
+    width: 100%;
+    overflow-x: auto;
 }
 
 .btn:disabled {

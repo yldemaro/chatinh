@@ -23,6 +23,7 @@ export default {
             chat: '',
             saldo: '',
             referMsg: "",
+            memberAgregado:'',
             member: {
                 username: '',
                 password: '',
@@ -37,7 +38,10 @@ export default {
             membersGroup: [],
             room: [],
             mostrarLink: false,
-            mostrarAterrizaje: false
+            mostrarAterrizaje: false,
+            mostrarInfo: false,
+            mostrarInfoDel:false,
+            memberBorrado:''
         }
     },
     created() {
@@ -139,11 +143,14 @@ export default {
         handleShowParticipantes() {
             //('agregar participante')
         },
-        getMessages() {
-            setInterval(() => {
-                fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
+        async getMessages() {
+            setInterval(async () => {
+                await fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
                     method: "GET",
-                    cors: ''
+                    mode: 'cors',
+                    headers: new Headers({
+                        'Content-Type': 'application/json'
+                    })
                 })
                     .then(response => response.json())
                     .then(async data => {
@@ -261,11 +268,6 @@ export default {
                             body: JSON.stringify(value)
                         }).then(response => response.json())
                             .then(data => {
-                                // //(data);
-                                // alertify.alert(data.message);
-                                // if (data) {
-
-
                                 const addRoom = {
                                     username: this.member.username,
                                     roomuid: this.currentRoom.oid
@@ -276,6 +278,8 @@ export default {
                                     body: JSON.stringify(addRoom)
                                 }).then(response => response.json())
                                     .then(data => {
+                                        this.memberAgregado=this.member.username;
+                                        this.mostrarInfo = true;
                                         const valueRoom = {
                                             uid: '',
                                             name: this.member.username,
@@ -287,7 +291,7 @@ export default {
                                                 this.profile.User.username,
                                                 this.member.username
                                             ],
-                                            img: '',
+                                            img: url || '',
                                             status: false
                                         };
                                         fetch(`${http}/client/rooms`, {
@@ -318,10 +322,7 @@ export default {
                                                             email: '',
                                                             plane: ''
                                                         }
-
-                                                        // alert("Miembro Agregado Correctamente", `${data.link}/${data.username}`)
-
-                                                        // fetch(`${http}/`)
+                                                        e.target.value='';
                                                     })
                                             })
 
@@ -520,7 +521,11 @@ export default {
                     method: 'POST',
                     body: JSON.stringify(value)
                 }).then(response => response.json())
-                    .then(data => alertify.alert(data));
+                    .then(data => {
+                        this.memberBorrado=person;
+                        this.mostrarInfoDel=true;
+                        this.obtenerRoom();
+                    });
             }
         },
         async obtenerRoom(name) {
@@ -561,7 +566,7 @@ export default {
                 <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=profile.User?.img />
                 <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
                 <div style="display:flex; flex-direction: column; margin-left:5px;">
-                    <h3>{{ currentRoom.name?.toUpperCase() }}</h3>
+                    <h6>{{ currentRoom.name?.toUpperCase() }}</h6>
                     <span class="text-secondary members"><span v-for="item in currentRoom.members?.join(', ')">{{ item
                     }}</span>
                     </span>
@@ -589,7 +594,7 @@ export default {
                         <!--<li><a class="dropdown-item" href="#">Agregar Nuevo Grupo</a></li>-->
                     </ul>
                 </div>
-                <div class="dropdown" v-if="room.length > 1">
+                <div class="dropdown" v-if="currentRoom.members?.length > 1">
                     <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
                         data-bs-toggle="dropdown" aria-expanded="false" @click="obtenerRoom(profile.User.username)">
                         <i class="fa-regular fa-envelope"></i>
@@ -602,7 +607,7 @@ export default {
             </div>
 
         </header>
-        <div v-if="currentRoom" style="height:calc(100% - 100px)">
+        <div v-if="currentRoom" style="height:calc(100% - 100px); overflow-y: auto;">
             <img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="">
             <div v-if="messages">
                 <ul id="chat" class="p-1" style="height:100%; overflow-y: auto; font-size:13px;">
@@ -619,19 +624,14 @@ export default {
 
                             <div class="msgheader">
                                 <p class="msgtitle">{{ item.sender }}</p>
-                                <a href="#" class="m-1"  @click="copiar(item.content)"><i class="fa-solid fa-copy"></i></a>
-                                <a href="#"  @click="onReferMessage(item)"><i class="fa-solid fa-chevron-down"></i></a>
-                                <!--<div class="btn-group dropdown" style="height: 16px;">
-                                    <button type="button"  class="btn dropdown-toggle" data-bs-toggle="dropdown"
-                                        aria-expanded="false">
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="#" @click="onReferMessage(item)">Responder</a>
-                                        </li>
-                                        <li><a class="dropdown-item" href="#" >Copiar
-                                                Mensaje</a></li>
-                                    </ul>
-                                </div>-->
+                                <div>
+                                    <a href="#" class=" text-secondary m-1" @click="copiar(item.content)"><i
+                                            class="fa-solid fa-copy"></i></a>
+                                    <a href="#" class=" text-secondary" @click="onReferMessage(item)"><i
+                                            class="fa-solid fa-chevron-down"></i></a>
+
+                                </div>
+
                             </div>
                             <div>
                                 <div class="divmsgcontent">
@@ -641,8 +641,10 @@ export default {
                                 </div>
                             </div>
                         </div>
-                    </div>
 
+                    </div>
+                    <div class="text-center" v-if="mostrarInfo">{{ memberAgregado }} fue agregada al grupo</div>
+                    <div class="text-center" v-if="mostrarInfoDel">{{memberBorrado}} fue eliminada del grupo</div>
                 </ul>
             </div>
 
@@ -913,7 +915,7 @@ export default {
     min-height: 60px;
 }
 
-.msgtitle{
+.msgtitle {
     text-transform: capitalize;
 }
 
@@ -991,7 +993,8 @@ export default {
     border-right: 1px solid #00a884;
     margin: 2px 0 2px 10px;
     line-height: 1;
-    width: 85%;
+    margin-left: 3%;
+    margin-right: 15%;
 }
 
 .messagerow2 {
@@ -1003,6 +1006,8 @@ export default {
     border-left: 1px solid white;
     margin: 2px 10px 2px 0;
     line-height: 1;
+    margin-left: 15%;
+    margin-right: 3%;
 }
 
 .alignDer {
