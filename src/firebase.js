@@ -2,6 +2,8 @@
 import firebase from "firebase/app";
 import "firebase/firestore";
 import "firebase/auth";
+import "firebase/storage"
+
 const firebaseConfig = {
   apiKey: "AIzaSyAMJTkpKXIYMlsdzR3-SaR4jc5ygp6xMEg",
   authDomain: "profileinh.firebaseapp.com",

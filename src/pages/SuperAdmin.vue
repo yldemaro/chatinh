@@ -1,6 +1,7 @@
 <script >
 import { db } from '../firebase';
 import firebase from "firebase";
+import 'firebase/storage';
 import { http } from '../http/apihttp';
 import { Clipboard } from "v-clipboard";
 
@@ -229,6 +230,7 @@ export default {
                 Username: this.username.trim(),
                 Password: this.password.trim(),
                 Email: this.email.trim(),
+                alias: this.img2.name,
                 plane: this.password,
                 img: "",
                 role: "admin",
@@ -354,7 +356,11 @@ export default {
                     this.grupos();
                 })
         },
-        async eliminarUser(id, name) {
+        async eliminarUser(id, name, img) {
+            const storageRef = firebase.storage().ref();
+            // var desertRef = storageRef.child(img)
+
+            // console.log(desertRef);
 
             await fetch(`${http}/client/rooms/findroombyusername/${name}`, {
                 method: 'POST'
@@ -367,16 +373,18 @@ export default {
                     } else {
                         for (let index = 0; index < data.length; index++) {
                             const result = this.linksAll.filter(element => element.room == data[index].oid);
-                            console.log(result);
+                            // console.log(result);
                             if (result.length > 0) {
                                 await fetch(`${http}/client/links/${result[index].objectId}`, {
                                     method: 'DELETE'
                                 })
                                     .then(response => response.json())
                                     .then(data => {
+
                                         // console.log(data)
                                         // this.getAllLinks();
                                     })
+                                    .catch(error => console.log(error))
                             }
 
                             await fetch(`${http}/client/rooms/${data[index].oid}`, {
@@ -387,6 +395,7 @@ export default {
                                     // console.log(data);
                                     // this.getAllRooms();
                                 })
+                                .catch(error => console.log(error))
                         }
                     }
                 })
@@ -401,24 +410,40 @@ export default {
                     } else {
                         if (data.length > 0) {
                             for (let index = 0; index < data.length; index++) {
+                                var desertRef = storageRef.child(data[index].alias)
+                                desertRef.delete().then(() => {
+                                    // File deleted successfully
+                                    // console.log('borrado')
+                                }).catch((error) => {
+                                    console.log(error)
+                                    // Uh-oh, an error occurred!
+                                });
                                 fetch(`${http}/client/users/${data[index].objectId}`, {
                                     method: 'DELETE'
                                 }).then(response => response.json())
                                     .then(data => console.log(data))
+                                    .catch(error => console.log(error))
 
                             }
                         }
                     }
 
-                });
+                }).catch(error => console.log(error));
+
+            var desertRef2 = storageRef.child(img);
+            desertRef2.delete().then(() => {
+                // File deleted successfully
+                // console.log('borrado')
+            }).catch((error) => {
+                console.log(error)
+                // Uh-oh, an error occurred!
+            });
 
             await fetch(`${http}/client/users/${id}`, {
                 method: 'DELETE'
             }).then(response => response.json())
                 .then(data => alertify.alert('Grupo Borrado con exito'))
-
-            // this.getAllLinks();
-            // this.getAllRooms();
+                .catch(error => console.log(error))
             this.getAllUsers();
         },
         eliminarLink(id) {
@@ -519,7 +544,8 @@ export default {
                 <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
             </div>
 
-            <table id="exampleC" class="table bg bg-light p-1" style="font-size:15px; width: 100%; background:white;">
+            <table id="exampleC" class="table table-bordered table-striped table-vcenter p-1"
+                style="font-size:15px; width: 100%; background:white;">
                 <thead v-if="mostrarUsuarios">
                     <tr>
                         <th>NAME</th>
@@ -540,7 +566,7 @@ export default {
                                 src="../assets/img/user.svg" alt="" /></td>
                         <td v-if="item.img != ''"> <img style="width:32px; height: 32px; margin:auto;" :src="item.img"
                                 alt="" /></td>
-                        <td><button @click="eliminarUser(item.objectId, item.username)"
+                        <td><button @click="eliminarUser(item.objectId, item.username, item.alias)"
                                 :disabled="item.role == 'superadmin'" class="btn btn-danger"><i
                                     class="fa-solid fa-trash"></i></button></td>
                     </tr>
@@ -561,9 +587,10 @@ export default {
                     <tr v-if="groupsAll.length > 0" v-for="(item, index) in groupsAll" :key="item.objectId">
                         <td>{{ item.name }}</td>
                         <td>{{ item.staff }}</td>
-                        <td v-if="item.img == ''"><img style="width:32px; height:32px; margin:auto;" src="../assets/img/user.svg"
+                        <td v-if="item.img == ''"><img style="width:32px; height:32px; margin:auto;"
+                                src="../assets/img/user.svg" alt="" /></td>
+                        <td v-if="item.img != ''"> <img style="width:32px; height:32px; margin:auto;" :src="item.img"
                                 alt="" /></td>
-                        <td v-if="item.img != ''"> <img style="width:32px; height:32px; margin:auto;" :src="item.img" alt="" /></td>
                         <td> <button class="btn btn-danger" @click="eliminarRoom(item.oid)"><i
                                     class="fa-solid fa-trash"></i></button></td>
                     </tr>

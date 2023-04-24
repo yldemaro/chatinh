@@ -60,8 +60,9 @@ export default {
             } else {
                 if (this.profile?.User.role != 'superadmin') {
                     this.Rol(this.profile?.User.role);
+
                     this.obtenerRooms();
-                    this.fetchMessages();
+                    // this.fetchMessages();
                     this.getUser(this.profile?.User.username);
                 } else {
                     this.$router.push('/superadmin')
@@ -81,14 +82,28 @@ export default {
                         .then(response => response.json())
                         .then(data => {
                             //(data)
+                            if (!data) {
+                                localStorage.clear();
+                                this.logueado();
+                            }
                         })
                 }
 
 
             }, 3000);
         },
+        memberStr() {
+
+            if (!this.currentRoom?.members.length) {
+                return "";
+            }
+
+            this.memberStrs = this.currentRoom?.members.join(", ");
+
+            // return this.currentRoom?.members.join(", ");
+        },
         async fetchMessages() {
-            fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
+            await fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
                 method: "GET"
             })
                 .then(response => response.json())
@@ -107,13 +122,14 @@ export default {
             // //(this.rol)
         },
         async obtenerRooms() {
-            // setInterval(async () => {
+            setInterval(async () => {
             await fetch(`${http}/client/rooms/findroombyusername/${this.profile?.User.username}`, {
                 method: "POST"
             })
                 .then(response => response.json())
                 .then(data => {
                     // console.log(data)
+                    // this.fetchMessages();
 
                     if (!data || data.message == "User dont have any room") {
                         this.rooms = [];
@@ -128,7 +144,7 @@ export default {
                     this.getMessages();
                 })
             this.getUsersNoAdmin();
-            // }, 4000)
+            }, 4000)
 
         },
         async CurrentRoom(room) {
@@ -138,6 +154,7 @@ export default {
                 const chatWindow = document.getElementById('chat');
                 chatWindow.scrollTop = chatWindow.scrollHeight + 60;
             }
+            this.memberStr();
 
         },
         handleShowParticipantes() {
@@ -146,25 +163,21 @@ export default {
         async getMessages() {
             setInterval(async () => {
                 await fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
-                    method: "GET",
-                    mode: 'cors',
-                    headers: new Headers({
-                        'Content-Type': 'application/json'
-                    })
+                    method: "GET"
                 })
                     .then(response => response.json())
                     .then(async data => {
-                        // //(data, this.messages.length);
+                        (data, this.messages.length);
 
                         if (!data && this.messages.length == 0) {
                             this.messages = [];
                             return;
                         }
 
-                        if (data.length != this.messages.length) {
-                            // //('mensaje nuevo')
-                            this.messages.push(data);
-                        }
+                        // if (data.length != this.messages.length) {
+                        //     // //('mensaje nuevo')
+                        //     this.messages.push(data);
+                        // }
                         this.messages = await data;
 
                     });
@@ -219,7 +232,7 @@ export default {
                 .then(response => response.json())
                 .then(data => {
                     // //(data)
-                    if (data.message) {
+                    if (data) {
                         // this.getMessages();
                         const chatWindow = document.getElementById('chat');
                         chatWindow.scrollTop = chatWindow.scrollHeight + 60;
@@ -413,6 +426,7 @@ export default {
                 method: "PUT",
                 body: JSON.stringify(valueChat)
             }).then(response => response.json())
+                .then(data => this.obtenerRooms())
         },
         findMessages(id) {
             if (!id) {
@@ -423,8 +437,8 @@ export default {
             // //(found);
             return found;
         },
-        handleChangeSaldo(e, item, i) {
-            // //(item, event.target.value, i)
+        handleChangeSaldo(item, e, i) {
+            // console.log(item, e.target.value, i)
             const value = this.users;
             this.saldo = event.target.value;
 
@@ -435,16 +449,10 @@ export default {
                 saldo: this.saldo
             }
 
-            // //(value)
-
-            // this.users = value;
-
-            // this.users= value;
-
-            // //(this.users)
+            // console.log(value)
         },
         async handleCarrera() {
-            // //(this.users, this.users.length, this.room);
+            // console.log(this.users, this.users.length, this.room);
 
             for (let index = 0; index < this.users.length; index++) {
                 const element = this.users[index];
@@ -475,15 +483,6 @@ export default {
                             chatWindow.scrollTop = chatWindow.scrollHeight + 60;
                         }
                     })
-                // await fetch(`${http}/client/rooms/findroombyusername/${element.name}`,{
-                //     method:'POST'
-                // })
-                // .then(response=> response.json())
-                // .then(data =>{
-
-                // })
-
-                // //(payload);
             }
 
 
@@ -559,31 +558,30 @@ export default {
             <input type="text" readonly class="copy-link-input" :value="link">
             <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
         </div>
-        <header class="header">
+        <div class="header">
 
 
             <div class="showPart" data-bs-toggle="modal" data-bs-target="#staticBackdrop2" v-if="currentRoom">
                 <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=profile.User?.img />
                 <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
                 <div style="display:flex; flex-direction: column; margin-left:5px;">
-                    <h6>{{ currentRoom.name?.toUpperCase() }}</h6>
-                    <span class="text-secondary members"><span v-for="item in currentRoom.members?.join(', ')">{{ item
-                    }}</span>
-                    </span>
+                    <h6 class="m-0">{{ currentRoom.name?.toUpperCase() }}</h6>
+                    <span class="text-secondary members">{{ memberStrs }}</span>
                 </div>
 
             </div>
             <div style="display: flex;">
-                <a v-if="rol === 'admin' && currentRoom.members?.length > 1" className="btn  btn-danger text-white mr-1"
-                    @click="handleChat">
+                <a v-if="rol === 'admin' && currentRoom.members?.length > 1"
+                    className="btn  btn-danger bajaBotones text-white mr-1" @click="handleChat">
                     <i class="fa-sharp fa-regular fa-circle-stop"></i>
                 </a>
-                <a v-if="rol === 'admin' && currentRoom.members?.length > 1" className="btn btn-success  text-white"
-                    data-bs-toggle="modal" data-bs-target="#staticBackdrop3">
+                <a v-if="rol === 'admin' && currentRoom.members?.length > 1"
+                    className="btn btn-success bajaBotones  text-white" data-bs-toggle="modal"
+                    data-bs-target="#staticBackdrop3">
                     <i class="fa-solid fa-money-bill"></i>
                 </a>
-                <div class="dropdown" v-if="rol == 'admin'">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
+                <div class="dropdown" v-if="rol == 'admin'" style="margin-right: 3px;">
+                    <button class="btn btn-secondary bajaBotones dropdown-toggle" type="button" id="dropdownMenuButton1"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fa-solid fa-plus"></i>
                     </button>
@@ -595,7 +593,7 @@ export default {
                     </ul>
                 </div>
                 <div class="dropdown" v-if="currentRoom.members?.length > 1">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
+                    <button class="btn btn-secondary bajaBotones dropdown-toggle" type="button" id="dropdownMenuButton1"
                         data-bs-toggle="dropdown" aria-expanded="false" @click="obtenerRoom(profile.User.username)">
                         <i class="fa-regular fa-envelope"></i>
                     </button>
@@ -606,14 +604,14 @@ export default {
                 </div>
             </div>
 
-        </header>
-        <div v-if="currentRoom" style="height:calc(100% - 100px); overflow-y: auto;">
+        </div>
+        <div id="chat" v-if="currentRoom" style="height:100%;overflow-y: auto; ">
             <img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="">
             <div v-if="messages">
                 <div class="text-center" v-if="mostrarInfo">{{ memberAgregado }} fue agregada al grupo</div>
                 <div class="text-center" v-if="mostrarInfoDel">{{ memberBorrado }} fue eliminada del grupo</div>
 
-                <ul id="chat" class="p-1" style="height:100%; overflow-y: auto; font-size:13px;">
+                <ul class="p-1" style="font-size:13px;">
 
                     <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']" v-for="item in messages">
                         <div :class="[profile.User.username == item.sender ? 'messagerow2' : 'messagerow']">
@@ -627,9 +625,9 @@ export default {
 
                             <div class="msgheader">
                                 <p class="msgtitle">{{ item.sender }}</p>
-                                <div>
-                                    <a href="#" class=" text-secondary m-1" @click="copiar(item.content)"><i
-                                            class="fa-solid fa-copy"></i></a>
+                                <div style="margin-left:5px;">
+                                    <a href="#" class=" text-secondary" style="margin-right: 10px;"
+                                        @click="copiar(item.content)"><i class="fa-solid fa-copy"></i></a>
                                     <a href="#" class=" text-secondary" @click="onReferMessage(item)"><i
                                             class="fa-solid fa-chevron-down"></i></a>
 
@@ -648,8 +646,6 @@ export default {
                     </div>
                 </ul>
             </div>
-
-            <!--<Messages :message="messages" />-->
         </div>
         <div v-if="!currentRoom">
             <h1>no tiene grupo</h1>
@@ -672,12 +668,6 @@ export default {
                         class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
-
-        <!--<button class="btn btn-success botonFlotante" data-bs-toggle="modal" data-bs-target="#staticBackdrop"></button>-->
-
-
-
-
     </div>
 
     <div class="container-full" v-if="mostrarAterrizaje">
@@ -769,12 +759,13 @@ export default {
                     <ul class="list-group">
                         <li class="list-group-item alinearLinea" v-for="(item, i) in membersGroup">
                             <label for="" v-if="item != profile.User.username">{{ item }}</label>
-                            <input v-if="item != profile.User.username" type="text" className="m-1" v-model="saldo"
-                                placeholder="saldo" @change="() => handleChangeSaldo($event, item, i)" />
+                            <input v-if="item != profile.User.username" type="text" className="m-1" placeholder="saldo"
+                                @blur="($event) => handleChangeSaldo(item, $event, i)"
+                                @change="($event) => handleChangeSaldo(item, $event, i)" />
                         </li>
                     </ul>
                     <div class="mt-2 text-center">
-                        <button class="btn btn-success btn-lg btn-block" @click="handleCarrera()">Enviar Saldo</button>
+                        <button class="btn btn-success btn-lg btn-block" data-bs-dismiss="modal" @click="handleCarrera()">Enviar Saldo</button>
                     </div>
                 </div>
             </div>
@@ -782,10 +773,34 @@ export default {
     </div>
 </template>
 
+
+
 <style>
 #app {
     overflow: hidden;
     height: 100%;
+}
+
+.bajaBotones {
+    width: 25px;
+    height: 25px;
+    display: flex;
+    justify-content: center;
+    margin-right: 3px;
+}
+
+.bajaBotones::after,
+.bajaBotones::before {
+    display: none;
+}
+
+.members {
+    display: flex;
+    color: gray;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    max-height: 30px;
 }
 
 .fondoDefault {
@@ -797,13 +812,6 @@ export default {
     border: none;
     border-radius: 0;
     background-color: white;
-}
-
-.members {
-    display: flex;
-    /* max-width: 60%;
-    width: 60%; */
-    overflow: hidden;
 }
 
 .box {
@@ -918,17 +926,20 @@ export default {
 
 .msgtitle {
     text-transform: capitalize;
+    margin-bottom: 5px;
+    font-weight: bold;
 }
 
 .msgcontent {
     overflow-wrap: break-word;
     white-space: pre-wrap;
     max-width: 400px;
+    margin-bottom: 5px;
 }
 
 .msgdate {
     float: right;
-    margin-top: 10px;
+    /* margin-top: 10px; */
     margin-left: 15px;
     font-size: 10px;
 }
@@ -983,8 +994,8 @@ export default {
 
 
 .divmsgcontent {
-    display: flex;
-    justify-content: space-between;
+    /* display: flex; */
+    /* justify-content: space-between; */
 }
 
 .messagerow {
@@ -992,10 +1003,8 @@ export default {
     padding: 2px;
     border-radius: 8px;
     border-right: 1px solid #00a884;
-    margin: 2px 0 2px 10px;
+    margin: 2px 15% 2px 3%;
     line-height: 1;
-    margin-left: 3%;
-    margin-right: 15%;
 }
 
 .messagerow2 {
@@ -1005,10 +1014,8 @@ export default {
     border-radius: 8px;
     display: inline-block;
     border-left: 1px solid white;
-    margin: 2px 10px 2px 0;
+    margin: 2px 5% 2px 15%;
     line-height: 1;
-    margin-left: 15%;
-    margin-right: 3%;
 }
 
 .alignDer {
@@ -1031,10 +1038,6 @@ export default {
     border-top: solid 1px #ccc;
     align-items: center;
     justify-content: space-between; */
-}
-
-.msgtitle {
-    font-weight: bold;
 }
 
 .inputcmp {

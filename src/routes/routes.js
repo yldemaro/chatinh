@@ -1,7 +1,6 @@
 import Home from "../pages/Home.vue";
 import Details from "../pages/Details.vue";
 import SuperAdmin from "../pages/SuperAdmin.vue";
-import Aterrizaje from "../pages/Aterrizaje.vue";
 import { createRouter, createWebHistory } from "vue-router";
 
 const routes = [
@@ -22,10 +21,6 @@ const routes = [
     meta: {
       autorizado: true,
     },
-  },
-  {
-    path: "/aterrizaje",
-    component: Aterrizaje,
   },
 ];
 
