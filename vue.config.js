@@ -10,7 +10,7 @@ module.exports = {
     },
     devServer:{
       headers:{"Access-Control-Allow-Origin": "*"},
-      // proxy:'http://3.15.149.136:3555',
+      proxy:'http://3.17.204.81:3555',
       changeOrigin:true
     }
   };

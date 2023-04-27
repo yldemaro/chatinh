@@ -1,7 +1,7 @@
 <template>
     <div class="container-full" v-if="mostrarAterrizaje">
         <div class="boxSeguridad">
-            <div class="box">
+            <div class="box text-center">
                 <img src="../assets/img/caballos.jpg" alt="">
                 <h3>Por motivos de seguridad espere el link de logueo</h3>
             </div>
@@ -41,6 +41,7 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
+                    // console.log(data)
 
                     if (data.message == 'User not found' || !data) {
                         this.mostrarAterrizaje = true;
@@ -52,7 +53,19 @@ export default {
                             password: data.plane
                         };
 
-                        this.loguearse(data.username, data.plane);
+                        fetch(`${http}/client/links/${id}`)
+                        .then(response=> response.json())
+                        .then(data => {
+                            if(!data.statusLink){
+                                alertify.alert('ya este link no puede ser usado por otra persona');
+                                return;
+                            }
+                            // console.log(this.user)
+                            this.loguearse(this.user.username, this.user.password);
+                        })
+                        .catch(error => console.log(error))
+
+                        // this.loguearse(data.username, data.plane);
                     }
 
                 })

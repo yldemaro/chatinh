@@ -41,12 +41,39 @@ export default {
             mostrarAterrizaje: false,
             mostrarInfo: false,
             mostrarInfoDel: false,
-            memberBorrado: ''
+            memberBorrado: '',
+            time: null,
+            parartime: false,
+            currentRoomTime: null,
+            desactChat: false,
+            currentRoomTime2: null,
+            iraotrolado: false
         }
     },
     created() {
         this.logueado();
         // this.obtenerScrollChat();
+
+        $(document).ready(function () {
+            if (navigator.userAgent.match(/android/i)) {
+                window.scrollTo(0, 0);
+                var nPageH = $(document).height();
+                var nViewH = window.outerHeight;
+                if (nViewH > nPageH) { nViewH -= 250; $('BODY').css('height', nViewH + 'px'); }
+                window.scrollTo(0, 1);
+
+            }
+        });
+
+        const timer = setInterval(() => {
+            const chatWindow = document.getElementById('chat');
+            var xH = chatWindow.scrollHeight;
+            chatWindow.scrollTo(0, xH);
+        }, 500);
+
+        clearInterval(timer)
+
+
     },
     methods: {
         async logueado() {
@@ -61,130 +88,183 @@ export default {
                 if (this.profile?.User.role != 'superadmin') {
                     this.Rol(this.profile?.User.role);
 
-                    this.obtenerRooms();
-                    // this.fetchMessages();
+                    // this.obtenerRooms();
+                    // this.getMessages();
+                    // this.obtenerRooms();
                     this.getUser(this.profile?.User.username);
                 } else {
                     this.$router.push('/superadmin')
                 }
             }
         },
+        getStatusRoom(active, status) {
+            // clearInterval(this.time)
+            this.currentRoom.active = active;
+            this.currentRoom.status = status;
+
+            if (!this.currentRoom.active) {
+                this.mostrarAterrizaje = true;
+                return;
+            } else {
+                this.mostrarAterrizaje = false;
+            }
+
+            // console.log(active, status)
+        },
+        copiar(valor) {
+            // //(valor)
+            Clipboard.copy(valor);
+            this.mostrarLink = false;
+            this.link = '';
+        },
         async getUser(username) {
-            setInterval(() => {
-                //(this.profile?.User.username);
-                if (!this.profile) {
-                    localStorage.clear()
-                    return;
-                } else {
-                    fetch(`${http}/client/users/findbyusername/${username}`, {
-                        method: 'GET'
+            //(this.profile?.User.username);
+            if (!this.profile) {
+                localStorage.clear()
+                return;
+            } else {
+                fetch(`${http}/client/users/findbyusername/${username}`, {
+                    method: 'GET'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        //(data)
+                        if (!data) {
+                            localStorage.clear();
+                            this.logueado();
+                        }
+                        this.watcherRoom();
+
+                        this.obtenerRooms();
+
+                        // this.watcherMessage();
+                        // console.log(this.currentRoom.oid)
+
+
                     })
-                        .then(response => response.json())
-                        .then(data => {
-                            //(data)
-                            if (!data) {
-                                localStorage.clear();
-                                this.logueado();
-                            }
-                        })
-                }
-
-
-            }, 3000);
+            }
         },
         memberStr() {
 
-            if (!this.currentRoom?.members.length) {
+            // console.log(this.currentRoom)
+
+            if (!this.currentRoom.members.length) {
                 return "";
             }
 
             this.memberStrs = this.currentRoom?.members.join(", ");
 
-            // return this.currentRoom?.members.join(", ");
-        },
-        async fetchMessages() {
-            await fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
-                method: "GET"
-            })
-                .then(response => response.json())
-                .then(async data => {
-
-                    if (!data) {
-                        return;
-                    }
-                    const chatWindow = document.getElementById('chat');
-                    chatWindow.scrollTop = chatWindow?.scrollHeight + 60;
-
-                });
+            return this.currentRoom?.members.join(", ");
         },
         async Rol(rol) {
             this.rol = rol;
             // //(this.rol)
         },
-        async obtenerRooms() {
-            setInterval(async () => {
-            await fetch(`${http}/client/rooms/findroombyusername/${this.profile?.User.username}`, {
-                method: "POST"
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // console.log(data)
-                    // this.fetchMessages();
+        watcherRoom() {
+            setInterval(() => {
 
-                    if (!data || data.message == "User dont have any room") {
-                        this.rooms = [];
-                        return;
-                    }
-                    // if (data.length === 1) {
-                    //     this.CurrentRoom(data[1])
-                    // } else {
-                    this.rooms = data;
-                    this.CurrentRoom(this.rooms[0])
-                    // }
-                    this.getMessages();
+
+                fetch(`${http}/client/rooms/findroombyusername/${this.profile?.User.username}`, {
+                    method: "POST"
                 })
-            this.getUsersNoAdmin();
-            }, 4000)
+                    .then(response => response.json())
+                    .then(async data => {
+                        this.getStatusRoom(data[0].active, data[0].status);
+                    })
+            }, 3000);
+        },
+        async watcherMessage() {
 
-        },
-        async CurrentRoom(room) {
-            // console.log(room);
-            this.currentRoom = room;
-            if (this.messages.length > 0) {
-                const chatWindow = document.getElementById('chat');
-                chatWindow.scrollTop = chatWindow.scrollHeight + 60;
-            }
-            this.memberStr();
-
-        },
-        handleShowParticipantes() {
-            //('agregar participante')
-        },
-        async getMessages() {
-            setInterval(async () => {
-                await fetch(`${http}/client/messages/${this.currentRoom?.oid}`, {
+            this.time = setInterval(async () => {
+                await fetch(`${http}/client/messages/${this.currentRoom.oid}`, {
                     method: "GET"
                 })
                     .then(response => response.json())
                     .then(async data => {
-                        (data, this.messages.length);
 
-                        if (!data && this.messages.length == 0) {
-                            this.messages = [];
-                            return;
-                        }
+                        this.getMessages(this.currentRoom.oid);
+                    })
+                    .catch(error => clearInterval(this.time))
+            }, 1000);
 
-                        // if (data.length != this.messages.length) {
-                        //     // //('mensaje nuevo')
-                        //     this.messages.push(data);
-                        // }
-                        this.messages = await data;
-
-                    });
-            }, 1500);
+        },
+        async obtenerRooms() {
+            // this.currentRoomTime = setInterval(async () => {
 
 
+            await fetch(`${http}/client/rooms/findroombyusername/${this.profile?.User.username}`, {
+                method: "POST"
+            })
+                .then(response => response.json())
+                .then(async data => {
+                    // console.log(data);
+                    if (!data || data.message == "User dont have any room") {
+                        this.rooms = [];
+                        return;
+                    }
 
+
+
+                    this.rooms = await data;
+                    await this.CurrentRoom(this.rooms[0])
+
+
+                })
+
+
+
+
+            // }, 4000);
+
+        },
+        async CurrentRoom(room) {
+            clearInterval(this.time);
+            this.currentRoom = await {};
+            this.messages = await [];
+            // this.messages = await [];
+            // await clearInterval(this.time);
+            // this.currentRoom = await room;
+
+            // await this.currentRoom={};
+
+            this.currentRoom = await room;
+            // this.messages=[];
+            // this.watcherMessage()
+            this.memberStr();
+            this.getUsersNoAdmin();
+            this.watcherMessage()
+            // this.getMessages(this.currentRoom.oid)
+            // this.messages=[];
+            // this.watcherMessage()
+        },
+        async getMessages(oid) {
+            await fetch(`${http}/client/messages/${oid}`, {
+                method: "GET"
+            })
+                .then(response => response.json())
+                .then(async data => {
+                    this.messages = await data;
+
+
+                    const chatWindow = document.getElementById('chat');
+                    var xH = chatWindow.scrollHeight;
+                    chatWindow.scrollTo(0, xH);
+
+
+                    if (data.length != this.messages.length) {
+                        const chatWindow = document.getElementById('chat');
+                        var xH = chatWindow.scrollHeight;
+                        chatWindow.scrollTo(0, xH);
+                    }
+                    // this.watcherMessage();
+                    if (data == null || data.length <= 0) {
+                        this.messages = [];
+                        clearInterval(this.time);
+                        return;
+                    }
+
+                })
+                .catch(error => clearInterval(this.time))
         },
         handleImage(e) {
             if (e.target.files[0]) {
@@ -231,13 +311,21 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
-                    // //(data)
-                    if (data) {
-                        // this.getMessages();
-                        const chatWindow = document.getElementById('chat');
-                        chatWindow.scrollTop = chatWindow.scrollHeight + 60;
-                    }
+                    this.watcherMessage();
+                    // console.log(data)
+                    this.getMessages(this.currentRoom.oid);
+
+                    const chatWindow = document.getElementById('chat');
+                    var xH = chatWindow.scrollHeight;
+                    chatWindow.scrollTo(0, xH);
+                    // if (data.message) {
+                    //     const chatWindow = document.getElementById('chat');
+                    //     chatWindow.scrollTop = chatWindow.scrollTop + 100;
+                    // }
+
                 })
+
+
 
             this.chat = '';
             this.referMsg = '';
@@ -261,7 +349,7 @@ export default {
             };
             const storageRef = firebase
                 .storage()
-                .ref(`${this.img2.name}`)
+                .ref(`${this.member.username}/${this.img2.name}`)
                 .put(this.img2);
             storageRef.on(
                 "state_changed",
@@ -305,6 +393,7 @@ export default {
                                                 this.member.username
                                             ],
                                             img: url || '',
+                                            active: true,
                                             status: false
                                         };
                                         fetch(`${http}/client/rooms`, {
@@ -313,6 +402,7 @@ export default {
                                         })
                                             .then(response => response.json())
                                             .then(data => {
+                                                console.log(data);
                                                 const value = {
                                                     username: this.member.username,
                                                     room: this.currentRoom.oid
@@ -328,14 +418,8 @@ export default {
                                                         this.mostrarLink = true;
                                                         this.link = await `${data.link}/${data.username}`;
                                                         this.obtenerRooms();
+                                                        this.limpiar();
 
-                                                        this.member = {
-                                                            username: '',
-                                                            password: '',
-                                                            email: '',
-                                                            plane: ''
-                                                        }
-                                                        e.target.value = '';
                                                     })
                                             })
 
@@ -346,19 +430,33 @@ export default {
                 })
 
         },
+        limpiar() {
+            this.member = {
+                username: '',
+                password: '',
+                email: '',
+                plane: ''
+            }
+            this.img2 = '';
+            this.img = '';
+            document.getElementById('registerM').value = '';
+        },
         onReferMessage(msg) {
             // //(msg)
             this.referMsg = msg;
             this.findMessages(msg.oid);
+            const chatWindow = document.getElementById('chat');
+            chatWindow.scrollTop = chatWindow.scrollHeight + 100;
+            // console.log(chatWindow.scrollTop)
         },
         removeRefer() {
             this.referMsg = "";
         },
         handleChat() {
-            this.chatCerrar = !this.chatCerrar;
-            //(this.chatCerrar)
 
-            if (this.chatCerrar) {
+            // console.log(this.currentRoom.status)
+
+            if (!this.currentRoom.status) {
                 const payload = {
                     uid: "",
                     content: "Carrera Cerrada Espere....",
@@ -380,7 +478,7 @@ export default {
                         if (data.message) {
                             // this.getMessages();
                             const chatWindow = document.getElementById('chat');
-                            chatWindow.scrollTop = chatWindow.scrollHeight + 60;
+                            chatWindow.scrollTop = chatWindow.scrollHeight + 100;
                         }
                     })
             } else {
@@ -405,7 +503,7 @@ export default {
                         if (data.message) {
                             // this.getMessages();
                             const chatWindow = document.getElementById('chat');
-                            chatWindow.scrollTop = chatWindow.scrollHeight + 60;
+                            chatWindow.scrollTop = chatWindow.scrollHeight + 100;
                         }
                     })
             }
@@ -419,14 +517,15 @@ export default {
                 staff: this.currentRoom.staff,
                 createAt: this.currentRoom.createAt,
                 img: this.currentRoom.img,
-                status: this.chatCerrar
+                status: !this.currentRoom.status,
+                active: this.currentRoom.active
             }
 
             fetch(`${http}/client/rooms`, {
                 method: "PUT",
                 body: JSON.stringify(valueChat)
             }).then(response => response.json())
-                .then(data => this.obtenerRooms())
+                .then(data => console.log(data))
         },
         findMessages(id) {
             if (!id) {
@@ -456,6 +555,7 @@ export default {
 
             for (let index = 0; index < this.users.length; index++) {
                 const element = this.users[index];
+                console.log(element.name)
                 const text = `${element.hipodromo}, ${element.carrera}, saldo: ${Number(
                     element.saldo
                 )}`;
@@ -466,7 +566,7 @@ export default {
                     ishidden: false,
                     refer: this.referMsg?.oid ?? "",
                     sender: this.profile.User.username,
-                    room: this.room[index + 1].oid,
+                    room: this.room[1].oid,
                     date: "",
                 };
 
@@ -480,7 +580,7 @@ export default {
                         if (data.message) {
                             // this.getMessages();
                             const chatWindow = document.getElementById('chat');
-                            chatWindow.scrollTop = chatWindow.scrollHeight + 60;
+                            chatWindow.scrollTop = chatWindow.scrollHeight + 100;
                         }
                     })
             }
@@ -532,40 +632,40 @@ export default {
                 method: 'POST'
             })
                 .then(response => response.json())
-                .then(data => {
-                    // //(data)
-                    this.room = data;
+                .then(async data => {
+                    // console.log(data)
+                    this.room = await data;
 
-
+                    return this.room;
                 })
 
-            return this.room;
+
         },
-        copiar(valor) {
-            // //(valor)
-            Clipboard.copy(valor);
-            this.mostrarLink = false;
-            this.link = '';
+        async pararTime() {
+            // console.log('apreto aqui')
+            clearInterval(this.time)
+            clearInterval(this.time)
         }
+
     }
 }
 
 </script>
 
 <template>
-    <div class="container-full" v-if="!mostrarAterrizaje">
+    <div class="container-full p-1" v-if="!mostrarAterrizaje">
         <div class="copy-link mt-3 mb-3" v-if="mostrarLink">
             <input type="text" readonly class="copy-link-input" :value="link">
             <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
         </div>
-        <div class="header">
+        <header class="header" v-if="currentRoom">
 
 
             <div class="showPart" data-bs-toggle="modal" data-bs-target="#staticBackdrop2" v-if="currentRoom">
-                <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=profile.User?.img />
+                <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=currentRoom?.img />
                 <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
                 <div style="display:flex; flex-direction: column; margin-left:5px;">
-                    <h6 class="m-0">{{ currentRoom.name?.toUpperCase() }}</h6>
+                    <h6 class="m-0" style="text-transform:capitalize;">{{ currentRoom.name }}</h6>
                     <span class="text-secondary members">{{ memberStrs }}</span>
                 </div>
 
@@ -575,7 +675,7 @@ export default {
                     className="btn  btn-danger bajaBotones text-white mr-1" @click="handleChat">
                     <i class="fa-sharp fa-regular fa-circle-stop"></i>
                 </a>
-                <a v-if="rol === 'admin' && currentRoom.members?.length > 1"
+                <a v-if="rol === 'admin' && currentRoom?.members.length > 1"
                     className="btn btn-success bajaBotones  text-white" data-bs-toggle="modal"
                     data-bs-target="#staticBackdrop3">
                     <i class="fa-solid fa-money-bill"></i>
@@ -594,24 +694,28 @@ export default {
                 </div>
                 <div class="dropdown" v-if="currentRoom.members?.length > 1">
                     <button class="btn btn-secondary bajaBotones dropdown-toggle" type="button" id="dropdownMenuButton1"
-                        data-bs-toggle="dropdown" aria-expanded="false" @click="obtenerRoom(profile.User.username)">
+                        data-bs-toggle="dropdown" aria-expanded="false" @click="() => {
+                                obtenerRoom(profile.User.username);
+                                pararTime();
+                            }">
                         <i class="fa-regular fa-envelope"></i>
                     </button>
                     <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
-                        <li v-for="item in room" @click="CurrentRoom(item)"><a class="dropdown-item" href="#">{{ item.name
+                        <li v-for="item in rooms" @click="CurrentRoom(item)"><a class="dropdown-item" href="#">{{
+                            item.name
                         }}</a></li>
                     </ul>
                 </div>
             </div>
 
-        </div>
-        <div id="chat" v-if="currentRoom" style="height:100%;overflow-y: auto; ">
-            <img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="">
-            <div v-if="messages">
-                <div class="text-center" v-if="mostrarInfo">{{ memberAgregado }} fue agregada al grupo</div>
-                <div class="text-center" v-if="mostrarInfoDel">{{ memberBorrado }} fue eliminada del grupo</div>
+        </header>
+        <div v-if="currentRoom" id="chat" @click="pararTime()"
+            style="height:calc(100% - 55px); overflow-y: auto; background: url('https://firebasestorage.googleapis.com/v0/b/profileinh.appspot.com/o/fondoDefault.jpeg?alt=media&token=f8784a12-0c3c-4b94-a3b2-2c8e1388e9d2'); ">
+            <!--<img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="">-->
+            <div style="margin-top:70px;">
 
-                <ul class="p-1" style="font-size:13px;">
+
+                <ul class="p-1" style="font-size:13px;" v-if="messages.length > 0">
 
                     <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']" v-for="item in messages">
                         <div :class="[profile.User.username == item.sender ? 'messagerow2' : 'messagerow']">
@@ -619,14 +723,15 @@ export default {
                             <div v-if="item.refer != ''">
                                 <div class="viewrefer">
                                     <p class="msgtitle">{{ item.refer }}</p>
-                                    <p class="msgcontent">{{ item.content2 }}</p>
+                                    <p class="msgcontent" style="max-height: 50px; overflow: hidden;">{{ item.content2 }}
+                                    </p>
                                 </div>
                             </div>
 
                             <div class="msgheader">
                                 <p class="msgtitle">{{ item.sender }}</p>
                                 <div style="margin-left:5px;">
-                                    <a href="#" class=" text-secondary" style="margin-right: 10px;"
+                                    <a href="#" class=" text-secondary" style="margin-right: 15px;"
                                         @click="copiar(item.content)"><i class="fa-solid fa-copy"></i></a>
                                     <a href="#" class=" text-secondary" @click="onReferMessage(item)"><i
                                             class="fa-solid fa-chevron-down"></i></a>
@@ -646,11 +751,13 @@ export default {
                     </div>
                 </ul>
             </div>
+
+
+            <div class="text-center" v-if="mostrarInfo">{{ memberAgregado }} fue agregada al grupo</div>
+            <div class="text-center" v-if="mostrarInfoDel">{{ memberBorrado }} fue eliminada del grupo</div>
+
         </div>
-        <div v-if="!currentRoom">
-            <h1>no tiene grupo</h1>
-        </div>
-        <div v-if="currentRoom" style="display: flex; flex-direction: column;">
+        <div v-if="currentRoom" class="boxFooter">
             <div v-if="referMsg != ''">
                 <div class="refercontainer">
                     <div class="hrefercon">
@@ -664,25 +771,27 @@ export default {
             </div>
             <div class=" inputContainer" v-if="!currentRoom.status">
                 <input type="text" v-model="chat" class="inputcmp" placeholder="escribir mensaje...." style="height: 60px;">
-                <button style="width: 60px;" class="btn btn-success" @click="appendMenssage()"><i
-                        class="fa-solid fa-paper-plane"></i></button>
+                <button style="width: 60px; height: 60px; border-radius: 50%" class="btn btn-success"
+                    @click="appendMenssage()"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
     </div>
 
     <div class="container-full" v-if="mostrarAterrizaje">
         <div class="boxSeguridad">
-            <div class="box">
+            <div class="box text-center">
                 <img class="deslogueo" src="../assets/img/caballos.jpg" alt="">
-                <h3>Por motivos de seguridad espere el link de logueo</h3>
+                <h3>Grupo Inactivo espere que lo desbloqueen o link de logueo</h3>
             </div>
         </div>
     </div>
 
+
+
     <!-- Modal -->
     <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
         aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog" style="margin-top:70px;">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="staticBackdropLabel">Registrar Miembro</h5>
@@ -704,14 +813,16 @@ export default {
                         <input type="email" class="form-control" v-model="member.email" name="email" placeholder="Email">
                     </div>
                     <div class="form-group">
-                        <input type="file" className="mb-2" class="form-control" @change="handleImage($event)" />
+                        <input type="file" id="registerM" className="mb-2" class="form-control"
+                            @change="handleImage($event)" />
                         <div className="text-center p-4" v-if="img != ''">
                             <img style="width: 100px; height: 100px; margin: auto;" :src="img" alt="" />
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        @click="limpiar()">Close</button>
                     <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
                         @click="registerMember($event)">Agregar</button>
                 </div>
@@ -721,7 +832,7 @@ export default {
 
     <div class="modal fade" id="staticBackdrop2" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
         aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog" style="margin-top:70px;">
             <div class="modal-content">
                 <div class="modal-header bg bg-success text-white">
                     <h5 class="modal-title" id="staticBackdropLabel">Información de Participantes</h5>
@@ -730,7 +841,7 @@ export default {
                 </div>
                 <div class="modal-body">
                     <ul class="list-group">
-                        <div class="mb-2 p-2" v-for="item in currentRoom.members"
+                        <div class="mb-2 p-2" v-for="item in currentRoom?.members"
                             style="display:flex; justify-content: space-between; border:.4px solid #cecece; align-items: center;">
                             <li class="list-group-item" style="border:none;">{{ item }} </li>
                             <button v-if="rol === 'admin'" :disabled="profile.User.username === item" class="btn btn-danger"
@@ -745,7 +856,7 @@ export default {
 
     <div class="modal fade" id="staticBackdrop3" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
         aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog" style="margin-top:70px;">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="staticBackdropLabel">Pagar</h5>
@@ -765,7 +876,8 @@ export default {
                         </li>
                     </ul>
                     <div class="mt-2 text-center">
-                        <button class="btn btn-success btn-lg btn-block" data-bs-dismiss="modal" @click="handleCarrera()">Enviar Saldo</button>
+                        <button class="btn btn-success btn-lg btn-block" data-bs-dismiss="modal"
+                            @click="handleCarrera()">Enviar Saldo</button>
                     </div>
                 </div>
             </div>
@@ -787,6 +899,14 @@ export default {
     display: flex;
     justify-content: center;
     margin-right: 3px;
+}
+
+.boxFooter {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    bottom: 0;
+    width: 100%;
 }
 
 .bajaBotones::after,
@@ -833,6 +953,7 @@ export default {
     height: 36px;
     display: flex;
     max-width: 100%;
+    margin-top: 70px;
 }
 
 .copy-link-input {
@@ -873,9 +994,9 @@ export default {
 }
 
 .refercontainer {
-    position: absolute;
+    /* position: absolute; */
     background-color: white;
-    bottom: 60px;
+    /* bottom: 60px; */
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 0.1fr;
@@ -910,7 +1031,8 @@ export default {
 .rfcontent {
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 600px;
+    max-width: 420px;
+    max-height: 100px;
 }
 
 .header {
@@ -922,6 +1044,9 @@ export default {
     padding: 10px;
     background-color: #cdcebc;
     min-height: 60px;
+    position: fixed;
+    width: 100%;
+    z-index: 10000;
 }
 
 .msgtitle {
@@ -1047,15 +1172,5 @@ export default {
     border-radius: 8px;
     background: #d1d7db;
     width: 100%;
-}
-
-@media (max-width: 480px) {
-    .header {
-        justify-content: space-between;
-    }
-
-    .showPart {
-        width: 100px;
-    }
 }
 </style>

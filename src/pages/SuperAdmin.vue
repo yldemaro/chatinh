@@ -26,7 +26,8 @@ export default {
             mostrarGrupos: false,
             profile: {},
             mostrarLink: false,
-            mostrarLinks: false
+            mostrarLinks: false,
+            cambiarActiveRoom:false
         }
     },
     async created() {
@@ -61,47 +62,35 @@ export default {
 
         },
         async getUser(username) {
-            setInterval(() => {
-                try {
-                    // console.log(this.profile.User.username);
-                    fetch(`${http}/client/users/findbyusername/${username}`, {
-
-                        method: 'GET',
-                        mode: 'cors',
-                        headers: new Headers({
-                            'Content-Type': 'application/json'
-                        })
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            // console.log(data)
-                            if (!data) {
-                                localStorage.clear();
-                                this.mostraBox = true;
-                                return;
-                            }
-                        })
-                } catch (error) {
-                    console.log(error)
-                }
-
-
-            }, 4500);
+            await fetch(`${http}/client/users/findbyusername/${username}`, {
+                method: 'GET'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data) {
+                        localStorage.clear();
+                        this.mostraBox = true;
+                        return;
+                    }
+                })
+                .catch(error => console.log(error))
         },
         async getAllUsers() {
             // setInterval(() => {
             try {
 
                 fetch(`${http}/client/users`, {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    method: "GET",
-
+                    method: "GET"
                 })
                     .then(response => response.json())
                     .then(async data => {
                         // console.log(data)
+
+                        if (!data) {
+                            localStorage.clear();
+                            this.logueado();
+                            return;
+                        }
                         this.usersAll = await data;
 
                         // if (this.linksAll.length >= 2) {
@@ -125,11 +114,7 @@ export default {
 
             try {
                 await fetch(`${http}/client/rooms`, {
-                    method: "GET",
-                    mode: 'cors',
-                    headers: new Headers({
-                        'Content-Type': 'application/json'
-                    })
+                    method: "GET"
                 })
                     .then(response => {
                         if (!response.ok) {
@@ -160,11 +145,7 @@ export default {
         async getAllLinks() {
             try {
                 await fetch(`${http}/client/links`, {
-                    method: "GET",
-                    mode: 'cors',
-                    headers: new Headers({
-                        'Content-Type': 'application/json'
-                    })
+                    method: "GET"
                 }).then(response => response.json())
                     .then(data => {
                         if (data.message == 'Not Links found') {
@@ -188,7 +169,7 @@ export default {
             }
             fetch(`${http}/auth/signin`, {
                 method: 'POST',
-                body: JSON.stringify(value)
+                body: JSON.stringify(value),
             })
                 .then(response => response.json())
                 .then(async data => {
@@ -222,6 +203,7 @@ export default {
             this.email = '';
             this.img = '';
             this.img2 = '';
+            document.getElementById('imagenR').value = '';
         },
         async agregarAdmin(e) {
             e.preventDefault();
@@ -240,7 +222,7 @@ export default {
 
             const storageRef = firebase
                 .storage()
-                .ref(`${this.img2.name}`)
+                .ref(`${this.username}/${this.img2.name}`)
                 .put(this.img2);
             storageRef.on(
                 "state_changed",
@@ -253,14 +235,14 @@ export default {
                 },
                 () => {
                     this.uploadValue = 100;
-                    storageRef.snapshot.ref.getDownloadURL().then((url) => {
+                    storageRef.snapshot.ref.getDownloadURL().then(async (url) => {
                         value.img = url || '';
-                        fetch(`${http}/auth/signup`, {
+                        await fetch(`${http}/auth/signup`, {
                             method: "POST",
-                            body: JSON.stringify(value)
+                            body: JSON.stringify(value),
                         }).then(response => response.json())
                             .then(async data => {
-                                // console.log(data);
+                                console.log(data);
                                 const value = {
                                     uid: null,
                                     name: this.username,
@@ -271,6 +253,7 @@ export default {
                                     members: [
                                         this.username
                                     ],
+                                    active: true,
                                     img: url || '',
                                     status: false
                                 }
@@ -293,10 +276,11 @@ export default {
                                                 body: JSON.stringify(value)
                                             }).then(response => response.json())
                                                 .then(data => {
+                                                    this.link = '';
                                                     // console.log(data)
                                                     this.mostrarLink = true;
                                                     this.link = `${data.link}/${data.username}`;
-                                                    alertify.alert(`Admin Agregado Con exitos`);
+                                                    alertify.alert('Registro de Administrador', `Admin Agregado Con exitos`);
                                                     this.getAllUsers();
                                                     this.getAllRooms();
                                                     this.getAllLinks();
@@ -314,30 +298,35 @@ export default {
             );
         },
         handleImage(e) {
+
             if (e.target.files[0]) {
                 this.img2 = e.target.files[0];
                 const data = URL.createObjectURL(e.target.files[0]);
                 this.img = data;
             }
+
         },
         users() {
-            this.getAllUsers();
-            this.mostrarUsuarios = !this.mostrarUsuarios;
+
+            this.mostrarUsuarios = true;
             this.mostrarGrupos = false;
             this.mostrarLinks = false;
+            this.getAllUsers();
         },
         grupos() {
-            this.getAllRooms();
-            this.mostrarGrupos = !this.mostrarGrupos
+
+            this.mostrarGrupos = true;
             this.mostrarUsuarios = false;
             this.mostrarLinks = false;
+            this.getAllRooms();
             // this.mostrarUsuarios = false;
         },
         links() {
-            this.getAllLinks();
-            this.mostrarLinks = !this.mostrarLinks
+
+            this.mostrarLinks = true
             this.mostrarUsuarios = false;
             this.mostrarGrupos = false;
+            this.getAllLinks();
             // this.mostrarUsuarios = false;
         },
         logout() {
@@ -353,11 +342,11 @@ export default {
                 .then(data => {
                     // console.log(data)
                     alertify.alert(data.message)
-                    this.grupos();
-                })
+                    // this.grupos();
+                }).catch(error => console.log(error))
         },
         async eliminarUser(id, name, img) {
-            const storageRef = firebase.storage().ref();
+
             // var desertRef = storageRef.child(img)
 
             // console.log(desertRef);
@@ -403,25 +392,30 @@ export default {
             await fetch(`${http}/client/users/getownerusers/${id}`, {
                 method: 'GET'
             }).then(response => response.json())
-                .then(data => {
+                .then(async data => {
                     // console.log(data);
                     if (!data) {
                         return;
                     } else {
                         if (data.length > 0) {
                             for (let index = 0; index < data.length; index++) {
-                                var desertRef = storageRef.child(data[index].alias)
-                                desertRef.delete().then(() => {
+                                var desertRef = firebase
+                                    .storage()
+                                    .ref()
+                                    .child(`${data[index].username}/${data[index].alias}`);
+                                await desertRef.delete().then(() => {
                                     // File deleted successfully
                                     // console.log('borrado')
                                 }).catch((error) => {
                                     console.log(error)
                                     // Uh-oh, an error occurred!
                                 });
-                                fetch(`${http}/client/users/${data[index].objectId}`, {
+                                await fetch(`${http}/client/users/${data[index].objectId}`, {
                                     method: 'DELETE'
                                 }).then(response => response.json())
-                                    .then(data => console.log(data))
+                                    .then(data => {
+
+                                    })
                                     .catch(error => console.log(error))
 
                             }
@@ -430,24 +424,29 @@ export default {
 
                 }).catch(error => console.log(error));
 
-            var desertRef2 = storageRef.child(img);
-            desertRef2.delete().then(() => {
-                // File deleted successfully
-                // console.log('borrado')
-            }).catch((error) => {
-                console.log(error)
-                // Uh-oh, an error occurred!
-            });
+
 
             await fetch(`${http}/client/users/${id}`, {
                 method: 'DELETE'
             }).then(response => response.json())
-                .then(data => alertify.alert('Grupo Borrado con exito'))
+                .then(data => {
+                    alertify.alert('Borrar Grupo', 'Grupo Borrado con exito');
+                    this.getAllUsers();
+
+                    const storageRef = firebase.storage().ref();
+                    var desertRef2 = storageRef.child(`${name}/${img}`);
+                    desertRef2.delete().then(() => {
+                        // File deleted successfully
+                        // console.log('borrado')
+                    }).catch((error) => {
+                        console.log(error)
+                        // Uh-oh, an error occurred!
+                    });
+                })
                 .catch(error => console.log(error))
-            this.getAllUsers();
+
         },
         eliminarLink(id) {
-            console.log(id);
             fetch(`${http}/client/links/${id}`, {
                 method: 'DELETE'
             })
@@ -469,6 +468,30 @@ export default {
                 $("#exampleC").DataTable();
             });
         },
+        bloquearGrupo(room){
+            // this.cambiarActiveRoom= !this.cambiarActiveRoom
+
+            // console.log(this.cambiarActiveRoom)
+            
+            const valueRoom = {
+                uid: room.oid,
+                name: room.name,
+                members: room.members,
+                staff: room.staff,
+                createAt: room.createAt,
+                img: room.img,
+                status: room.status,
+                active: !room.active
+            }
+
+            // console.log(valueRoom)
+
+            fetch(`${http}/client/rooms`, {
+                method: "PUT",
+                body: JSON.stringify(valueRoom)
+            }).then(response => response.json())
+                .then(data => this.getAllRooms())
+        }
     }
 }
 
@@ -577,6 +600,7 @@ export default {
                 <thead v-if="mostrarGrupos">
                     <tr>
                         <th>NAME</th>
+                        <th>ACTIVO</th>
                         <th>STAFF</th>
                         <th>IMAGE</th>
                         <th>ACTIONS</th>
@@ -586,13 +610,18 @@ export default {
 
                     <tr v-if="groupsAll.length > 0" v-for="(item, index) in groupsAll" :key="item.objectId">
                         <td>{{ item.name }}</td>
+                        <td v-if="!item.active"><span class="activo bg bg-danger text-white p-1">Bloqueado</span></td>
+                        <td v-if="item.active"><span class="activo bg bg-success text-white p-1">Activo</span></td>
                         <td>{{ item.staff }}</td>
                         <td v-if="item.img == ''"><img style="width:32px; height:32px; margin:auto;"
                                 src="../assets/img/user.svg" alt="" /></td>
                         <td v-if="item.img != ''"> <img style="width:32px; height:32px; margin:auto;" :src="item.img"
                                 alt="" /></td>
-                        <td> <button class="btn btn-danger" @click="eliminarRoom(item.oid)"><i
-                                    class="fa-solid fa-trash"></i></button></td>
+                        <td style="display:flex; justify-content: space-around;">
+                            <button class="btn btn-danger" @click="bloquearGrupo(item)"><i class="fa-sharp fa-regular fa-circle-stop"></i></button>
+                            <button class="btn btn-danger" @click="eliminarRoom(item.oid)"><i
+                                    class="fa-solid fa-trash"></i></button>
+                        </td>
                     </tr>
                     <tr class="text-center" v-if="groupsAll.length == 0">
                         <td colspan="12">Cargando...</td>
@@ -652,14 +681,16 @@ export default {
                             <input type="email" class="form-control" v-model="email" name="email" placeholder="Email">
                         </div>
                         <div class="form-group">
-                            <input type="file" className="mb-2" class="form-control" @change="handleImage($event)" />
+                            <input type="file" id="imagenR" className="mb-2" class="form-control"
+                                @change="handleImage($event)" />
                             <div className="text-center p-4" v-if="img != ''">
                                 <img style="width: 100px; height: 100px; margin: auto;" :src="img" alt="" />
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                            @click="limpiar()">Close</button>
                         <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
                             @click="agregarAdmin($event)">Agregar</button>
                     </div>
@@ -699,6 +730,11 @@ export default {
 
 .copy-link-input:hover {
     background: #eee;
+}
+
+.activo {
+    border-radius: 8px;
+    text-align: center;
 }
 
 .copy-link-button {
