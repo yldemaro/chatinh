@@ -65,14 +65,6 @@ export default {
             }
         });
 
-        const timer = setInterval(() => {
-            const chatWindow = document.getElementById('chat');
-            var xH = chatWindow.scrollHeight;
-            chatWindow.scrollTo(0, xH);
-        }, 500);
-
-        clearInterval(timer)
-
 
     },
     methods: {
@@ -181,11 +173,19 @@ export default {
                 })
                     .then(response => response.json())
                     .then(async data => {
-
-                        this.getMessages(this.currentRoom.oid);
+                        if(data.length <= 0){
+                            clearInterval(this.time);
+                            return;
+                        }
+                        this.messages=await data;
+                        this.scrollEnd();
+                        
+                        // this.getMessages(this.currentRoom.oid);
                     })
                     .catch(error => clearInterval(this.time))
             }, 1000);
+
+            // clearInterval(this.time);
 
         },
         async obtenerRooms() {
@@ -218,7 +218,7 @@ export default {
 
         },
         async CurrentRoom(room) {
-            clearInterval(this.time);
+            // clearInterval(this.time);
             this.currentRoom = await {};
             this.messages = await [];
             // this.messages = await [];
@@ -228,43 +228,37 @@ export default {
             // await this.currentRoom={};
 
             this.currentRoom = await room;
+            this.getMessages(this.currentRoom.oid)
             // this.messages=[];
             // this.watcherMessage()
             this.memberStr();
             this.getUsersNoAdmin();
             this.watcherMessage()
-            // this.getMessages(this.currentRoom.oid)
+            
             // this.messages=[];
             // this.watcherMessage()
         },
         async getMessages(oid) {
-            await fetch(`${http}/client/messages/${oid}`, {
+
+            const timer= await setInterval(()=>{
+                fetch(`${http}/client/messages/${oid}`, {
                 method: "GET"
             })
                 .then(response => response.json())
                 .then(async data => {
+                    if(data.length <= 0){
+                            clearInterval(timer);
+                            return;
+                        }
                     this.messages = await data;
-
-
-                    const chatWindow = document.getElementById('chat');
-                    var xH = chatWindow.scrollHeight;
-                    chatWindow.scrollTo(0, xH);
-
-
-                    if (data.length != this.messages.length) {
-                        const chatWindow = document.getElementById('chat');
-                        var xH = chatWindow.scrollHeight;
-                        chatWindow.scrollTo(0, xH);
-                    }
-                    // this.watcherMessage();
-                    if (data == null || data.length <= 0) {
-                        this.messages = [];
-                        clearInterval(this.time);
-                        return;
-                    }
+                    await this.scrollEnd();
 
                 })
-                .catch(error => clearInterval(this.time))
+                .catch(error => clearInterval(timer))
+            }, 1000);
+
+            clearInterval(timer)
+            
         },
         handleImage(e) {
             if (e.target.files[0]) {
@@ -311,13 +305,8 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
+                    $('#chat').scrollTop( $('#chat').prop('scrollHeight') ); 
                     this.watcherMessage();
-                    // console.log(data)
-                    this.getMessages(this.currentRoom.oid);
-
-                    const chatWindow = document.getElementById('chat');
-                    var xH = chatWindow.scrollHeight;
-                    chatWindow.scrollTo(0, xH);
                     // if (data.message) {
                     //     const chatWindow = document.getElementById('chat');
                     //     chatWindow.scrollTop = chatWindow.scrollTop + 100;
@@ -547,7 +536,6 @@ export default {
                 name: item,
                 saldo: this.saldo
             }
-
             // console.log(value)
         },
         async handleCarrera() {
@@ -591,6 +579,7 @@ export default {
             this.user.hipodromo = '';
             this.user.carrera = '';
             this.saldo = '';
+            document.getElementById('saldo').value='';
         },
         getUsersNoAdmin() {
             var user = [];
@@ -645,9 +634,20 @@ export default {
             // console.log('apreto aqui')
             clearInterval(this.time)
             clearInterval(this.time)
+        },
+        scrollEnd(){
+            var container= document.querySelector('.chat');
+            var scrollHeight= container.scrollHeight;
+            container.scrollTop= scrollHeight;
+
+            // clearInterval(this.time);
         }
 
-    }
+    },
+
+    mounted() {
+        this.scrollEnd();
+    },
 }
 
 </script>
@@ -658,10 +658,10 @@ export default {
             <input type="text" readonly class="copy-link-input" :value="link">
             <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
         </div>
-        <header class="header" v-if="currentRoom">
+        <header class="header">
 
 
-            <div class="showPart" data-bs-toggle="modal" data-bs-target="#staticBackdrop2" v-if="currentRoom">
+            <div class="showPart" data-bs-toggle="modal" data-bs-target="#staticBackdrop2">
                 <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=currentRoom?.img />
                 <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
                 <div style="display:flex; flex-direction: column; margin-left:5px;">
@@ -675,7 +675,7 @@ export default {
                     className="btn  btn-danger bajaBotones text-white mr-1" @click="handleChat">
                     <i class="fa-sharp fa-regular fa-circle-stop"></i>
                 </a>
-                <a v-if="rol === 'admin' && currentRoom?.members.length > 1"
+                <a v-if="rol === 'admin' && currentRoom.members?.length > 1"
                     className="btn btn-success bajaBotones  text-white" data-bs-toggle="modal"
                     data-bs-target="#staticBackdrop3">
                     <i class="fa-solid fa-money-bill"></i>
@@ -709,13 +709,13 @@ export default {
             </div>
 
         </header>
-        <div v-if="currentRoom" id="chat" @click="pararTime()"
-            style="height:calc(100% - 55px); overflow-y: auto; background: url('https://firebasestorage.googleapis.com/v0/b/profileinh.appspot.com/o/fondoDefault.jpeg?alt=media&token=f8784a12-0c3c-4b94-a3b2-2c8e1388e9d2'); ">
+        <div v-if="currentRoom" class="chat" id="chat" @click="pararTime()"
+            style="height:calc(100% - 55px); overflow-y: scroll; background: url('https://firebasestorage.googleapis.com/v0/b/profileinh.appspot.com/o/fondoDefault.jpeg?alt=media&token=f8784a12-0c3c-4b94-a3b2-2c8e1388e9d2'); ">
             <!--<img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="">-->
             <div style="margin-top:70px;">
 
 
-                <ul class="p-1" style="font-size:13px;" v-if="messages.length > 0">
+                <ul class="p-1" style="font-size:13px;">
 
                     <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']" v-for="item in messages">
                         <div :class="[profile.User.username == item.sender ? 'messagerow2' : 'messagerow']">
@@ -870,7 +870,7 @@ export default {
                     <ul class="list-group">
                         <li class="list-group-item alinearLinea" v-for="(item, i) in membersGroup">
                             <label for="" v-if="item != profile.User.username">{{ item }}</label>
-                            <input v-if="item != profile.User.username" type="text" className="m-1" placeholder="saldo"
+                            <input id="saldo" v-if="item != profile.User.username" type="text" className="m-1" placeholder="saldo"
                                 @blur="($event) => handleChangeSaldo(item, $event, i)"
                                 @change="($event) => handleChangeSaldo(item, $event, i)" />
                         </li>
