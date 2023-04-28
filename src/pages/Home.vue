@@ -43,7 +43,6 @@ export default {
             mostrarInfoDel: false,
             memberBorrado: '',
             time: null,
-            parartime: false,
             currentRoomTime: null,
             desactChat: false,
             currentRoomTime2: null,
@@ -84,6 +83,8 @@ export default {
                     // this.getMessages();
                     // this.obtenerRooms();
                     this.getUser(this.profile?.User.username);
+                    this.obtenerRooms(this.profile?.User.username);
+
                 } else {
                     this.$router.push('/superadmin')
                 }
@@ -125,9 +126,9 @@ export default {
                             localStorage.clear();
                             this.logueado();
                         }
-                        this.watcherRoom();
+                        // this.watcherRoom();
 
-                        this.obtenerRooms();
+                        // this.obtenerRooms();
 
                         // this.watcherMessage();
                         // console.log(this.currentRoom.oid)
@@ -165,34 +166,11 @@ export default {
                     })
             }, 3000);
         },
-        async watcherMessage() {
-
-            this.time = setInterval(async () => {
-                await fetch(`${http}/client/messages/${this.currentRoom.oid}`, {
-                    method: "GET"
-                })
-                    .then(response => response.json())
-                    .then(async data => {
-                        if(data.length <= 0){
-                            clearInterval(this.time);
-                            return;
-                        }
-                        this.messages=await data;
-                        this.scrollEnd();
-                        
-                        // this.getMessages(this.currentRoom.oid);
-                    })
-                    .catch(error => clearInterval(this.time))
-            }, 1000);
-
-            // clearInterval(this.time);
-
-        },
-        async obtenerRooms() {
+        async obtenerRooms(username) {
             // this.currentRoomTime = setInterval(async () => {
 
 
-            await fetch(`${http}/client/rooms/findroombyusername/${this.profile?.User.username}`, {
+            await fetch(`${http}/client/rooms/findroombyusername/${username}`, {
                 method: "POST"
             })
                 .then(response => response.json())
@@ -202,63 +180,66 @@ export default {
                         this.rooms = [];
                         return;
                     }
-
-
-
                     this.rooms = await data;
                     await this.CurrentRoom(this.rooms[0])
-
-
                 })
-
-
-
-
-            // }, 4000);
 
         },
         async CurrentRoom(room) {
-            // clearInterval(this.time);
-            this.currentRoom = await {};
-            this.messages = await [];
-            // this.messages = await [];
-            // await clearInterval(this.time);
-            // this.currentRoom = await room;
-
-            // await this.currentRoom={};
-
+            clearInterval(this.time)
+            this.currentRoom = null;
+            this.messages = [];
             this.currentRoom = await room;
-            this.getMessages(this.currentRoom.oid)
-            // this.messages=[];
-            // this.watcherMessage()
-            this.memberStr();
-            this.getUsersNoAdmin();
-            this.watcherMessage()
-            
-            // this.messages=[];
-            // this.watcherMessage()
+
+            if (this.currentRoom) {
+
+                this.memberStr();
+                this.getUsersNoAdmin();
+                await this.getMessages(this.currentRoom.oid);
+
+                setTimeout(() => {
+                    // console.log(this.messages.length)
+                    this.scrollEnd();
+                }, 1000);
+
+                this.watcherRoom();
+            }
+
+        },
+        async getWat(oid) {
+            this.time= setInterval(async () => {
+                await fetch(`${http}/client/messages/${oid}`, {
+                    method: "GET"
+                })
+                    .then(response => response.json())
+                    .then(async data => {
+                        // console.log(data.length, this.messages.length)
+                        if (data.length != this.messages.length) {
+                            this.messages.push(data[data.length - 1])
+                        }
+                    })
+                    .catch(error => clearInterval(this.time))
+            }, 1500);
         },
         async getMessages(oid) {
 
-            const timer= await setInterval(()=>{
-                fetch(`${http}/client/messages/${oid}`, {
+            await fetch(`${http}/client/messages/${oid}`, {
                 method: "GET"
             })
                 .then(response => response.json())
                 .then(async data => {
-                    if(data.length <= 0){
-                            clearInterval(timer);
-                            return;
-                        }
+                    // console.log(data)
                     this.messages = await data;
-                    await this.scrollEnd();
 
+                    this.getWat(oid);
                 })
-                .catch(error => clearInterval(timer))
-            }, 1000);
+                .catch(error => console.log(error))
 
-            clearInterval(timer)
-            
+
+
+
+
+
         },
         handleImage(e) {
             if (e.target.files[0]) {
@@ -297,6 +278,8 @@ export default {
                 date: "",
             };
 
+
+
             // //(payload)
 
             fetch(`${http}/client/messages`, {
@@ -305,8 +288,9 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
-                    $('#chat').scrollTop( $('#chat').prop('scrollHeight') ); 
-                    this.watcherMessage();
+                    this.getMessages(this.currentRoom.oid)
+                    // console.log(data);
+                    // this.messages.push(data.message);
                     // if (data.message) {
                     //     const chatWindow = document.getElementById('chat');
                     //     chatWindow.scrollTop = chatWindow.scrollTop + 100;
@@ -319,7 +303,7 @@ export default {
             this.chat = '';
             this.referMsg = '';
         },
-        registerMember(e) {
+        async registerMember(e) {
             e.preventDefault();
             if (!this.member.username.length || !this.member.password.length || !this.member.email.length) {
                 alertify.alert("Los campos no pueden estar vacios");
@@ -332,90 +316,74 @@ export default {
                 Password: this.member.password,
                 Email: this.member.email,
                 plane: this.member.password,
-                img: "",
+                img: this.currentRoom.img,
                 role: "member",
                 owner: this.profile.User?.objectId
             };
-            const storageRef = firebase
-                .storage()
-                .ref(`${this.member.username}/${this.img2.name}`)
-                .put(this.img2);
-            storageRef.on(
-                "state_changed",
-                (snapshot) => {
-                    this.uploadValue =
-                        (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                },
-                (error) => {
-                    //(error.message);
-                },
-                () => {
-                    this.uploadValue = 100;
-                    storageRef.snapshot.ref.getDownloadURL().then((url) => {
-                        value.img = url || '';
-                        fetch(`${http}/auth/signup`, {
-                            method: "POST",
-                            body: JSON.stringify(value)
-                        }).then(response => response.json())
-                            .then(data => {
-                                const addRoom = {
-                                    username: this.member.username,
-                                    roomuid: this.currentRoom.oid
-                                };
+            await fetch(`${http}/auth/signup`, {
+                method: "POST",
+                body: JSON.stringify(value)
+            }).then(response => response.json())
+                .then(data => {
+                    console.log('sigunp');
+                    const addRoom = {
+                        username: this.member.username,
+                        roomuid: this.currentRoom.oid
+                    };
 
-                                fetch(`${http}/client/rooms/adduser`, {
-                                    method: "POST",
-                                    body: JSON.stringify(addRoom)
-                                }).then(response => response.json())
-                                    .then(data => {
-                                        this.memberAgregado = this.member.username;
-                                        this.mostrarInfo = true;
-                                        const valueRoom = {
-                                            uid: '',
-                                            name: this.member.username,
-                                            alias: "",
-                                            staff: [
-                                                this.profile.User.username
-                                            ],
-                                            members: [
-                                                this.profile.User.username,
-                                                this.member.username
-                                            ],
-                                            img: url || '',
-                                            active: true,
-                                            status: false
-                                        };
-                                        fetch(`${http}/client/rooms`, {
-                                            method: 'POST',
-                                            body: JSON.stringify(valueRoom)
-                                        })
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                console.log(data);
-                                                const value = {
-                                                    username: this.member.username,
-                                                    room: this.currentRoom.oid
-                                                }
-                                                fetch(`${http}/client/links/generate`, {
-                                                    method: "POST",
-                                                    body: JSON.stringify(value)
-                                                })
-                                                    .then(response => response.json())
-                                                    .then(async data => {
-                                                        // //(data);
-                                                        // this.link = data.link;
-                                                        this.mostrarLink = true;
-                                                        this.link = await `${data.link}/${data.username}`;
-                                                        this.obtenerRooms();
-                                                        this.limpiar();
-
-                                                    })
-                                            })
-
-                                    })
-                                // }
+                    fetch(`${http}/client/rooms/adduser`, {
+                        method: "POST",
+                        body: JSON.stringify(addRoom)
+                    }).then(response => response.json())
+                        .then(data => {
+                            console.log('adduser');
+                            this.memberAgregado = this.member.username;
+                            this.mostrarInfo = true;
+                            const valueRoom = {
+                                uid: '',
+                                name: this.member.username,
+                                alias: "",
+                                staff: [
+                                    this.profile.User.username
+                                ],
+                                members: [
+                                    this.profile.User.username,
+                                    this.member.username
+                                ],
+                                img: this.currentRoom.img,
+                                active: true,
+                                status: false
+                            };
+                            fetch(`${http}/client/rooms`, {
+                                method: 'POST',
+                                body: JSON.stringify(valueRoom)
                             })
-                    })
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log('crea grupo');
+                                    const value = {
+                                        username: this.member.username,
+                                        room: this.currentRoom.oid
+                                    }
+                                    fetch(`${http}/client/links/generate`, {
+                                        method: "POST",
+                                        body: JSON.stringify(value)
+                                    })
+                                        .then(response => response.json())
+                                        .then(async data => {
+                                            // //(data);
+                                            console.log('genera link');
+                                            this.link = '';
+                                            this.mostrarLink = true;
+                                            this.link = await `${data.link}/${data.username}`;
+                                            // this.obtenerRooms();
+                                            this.limpiar();
+
+                                        })
+                                })
+
+                        })
+                    // }
                 })
 
         },
@@ -428,7 +396,7 @@ export default {
             }
             this.img2 = '';
             this.img = '';
-            document.getElementById('registerM').value = '';
+            // document.getElementById('registerM').value = '';
         },
         onReferMessage(msg) {
             // //(msg)
@@ -463,12 +431,6 @@ export default {
                 })
                     .then(response => response.json())
                     .then(data => {
-                        // //(data)
-                        if (data.message) {
-                            // this.getMessages();
-                            const chatWindow = document.getElementById('chat');
-                            chatWindow.scrollTop = chatWindow.scrollHeight + 100;
-                        }
                     })
             } else {
                 const payload = {
@@ -487,14 +449,7 @@ export default {
                     body: JSON.stringify(payload)
                 })
                     .then(response => response.json())
-                    .then(data => {
-                        // //(data)
-                        if (data.message) {
-                            // this.getMessages();
-                            const chatWindow = document.getElementById('chat');
-                            chatWindow.scrollTop = chatWindow.scrollHeight + 100;
-                        }
-                    })
+                    .then(data => {})
             }
 
 
@@ -514,7 +469,7 @@ export default {
                 method: "PUT",
                 body: JSON.stringify(valueChat)
             }).then(response => response.json())
-                .then(data => console.log(data))
+                .then(data => console.log(data.message))
         },
         findMessages(id) {
             if (!id) {
@@ -543,10 +498,7 @@ export default {
 
             for (let index = 0; index < this.users.length; index++) {
                 const element = this.users[index];
-                console.log(element.name)
-                const text = `${element.hipodromo}, ${element.carrera}, saldo: ${Number(
-                    element.saldo
-                )}`;
+                const text = `${element.hipodromo}, ${element.carrera}, ${Number(element.saldo)}`;
                 await this.obtenerRoom(element.name);
                 const payload = {
                     content: text,
@@ -567,8 +519,7 @@ export default {
                         // //(data)
                         if (data.message) {
                             // this.getMessages();
-                            const chatWindow = document.getElementById('chat');
-                            chatWindow.scrollTop = chatWindow.scrollHeight + 100;
+                            this.scrollEnd();
                         }
                     })
             }
@@ -579,7 +530,7 @@ export default {
             this.user.hipodromo = '';
             this.user.carrera = '';
             this.saldo = '';
-            document.getElementById('saldo').value='';
+            document.getElementById('saldo').value = '';
         },
         getUsersNoAdmin() {
             var user = [];
@@ -630,17 +581,10 @@ export default {
 
 
         },
-        async pararTime() {
-            // console.log('apreto aqui')
-            clearInterval(this.time)
-            clearInterval(this.time)
-        },
-        scrollEnd(){
-            var container= document.querySelector('.chat');
-            var scrollHeight= container.scrollHeight;
-            container.scrollTop= scrollHeight;
-
-            // clearInterval(this.time);
+        scrollEnd() {
+            var container = document.querySelector('.chat');
+            var scrollHeight = container.scrollHeight;
+            container.scrollTop = scrollHeight;
         }
 
     },
@@ -654,18 +598,15 @@ export default {
 
 <template>
     <div class="container-full p-1" v-if="!mostrarAterrizaje">
-        <div class="copy-link mt-3 mb-3" v-if="mostrarLink">
-            <input type="text" readonly class="copy-link-input" :value="link">
-            <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
-        </div>
-        <header class="header">
+
+        <header class="header" v-if="currentRoom">
 
 
             <div class="showPart" data-bs-toggle="modal" data-bs-target="#staticBackdrop2">
                 <img v-if="currentRoom?.img != ''" class="imgTitulo" :src=currentRoom?.img />
                 <img v-if="currentRoom?.img == ''" class="imgTitulo" src="../assets/img/user.svg" />
                 <div style="display:flex; flex-direction: column; margin-left:5px;">
-                    <h6 class="m-0" style="text-transform:capitalize;">{{ currentRoom.name }}</h6>
+                    <h6 class="m-0" style="text-transform:capitalize;">{{ currentRoom?.name }}</h6>
                     <span class="text-secondary members">{{ memberStrs }}</span>
                 </div>
 
@@ -694,10 +635,7 @@ export default {
                 </div>
                 <div class="dropdown" v-if="currentRoom.members?.length > 1">
                     <button class="btn btn-secondary bajaBotones dropdown-toggle" type="button" id="dropdownMenuButton1"
-                        data-bs-toggle="dropdown" aria-expanded="false" @click="() => {
-                                obtenerRoom(profile.User.username);
-                                pararTime();
-                            }">
+                        data-bs-toggle="dropdown" aria-expanded="false" @click="obtenerRoom(profile.User.username)">
                         <i class="fa-regular fa-envelope"></i>
                     </button>
                     <ul class="dropdown-menu" aria-labellehttpy="dropdownMenuButton1">
@@ -709,13 +647,17 @@ export default {
             </div>
 
         </header>
-        <div v-if="currentRoom" class="chat" id="chat" @click="pararTime()"
-            style="height:calc(100% - 55px); overflow-y: scroll; background: url('https://firebasestorage.googleapis.com/v0/b/profileinh.appspot.com/o/fondoDefault.jpeg?alt=media&token=f8784a12-0c3c-4b94-a3b2-2c8e1388e9d2'); ">
+        <div class="copy-link" v-if="mostrarLink">
+            <input type="text" readonly class="copy-link-input" :value="link">
+            <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
+        </div>
+        <div v-if="currentRoom" class="chat" id="chat"
+            style="height:calc(100% - 70px); overflow-y: scroll; background: url('https://firebasestorage.googleapis.com/v0/b/profileinh.appspot.com/o/fondo.png?alt=media&token=13b267a0-f26d-4d07-9338-e334fc9fdb5f'); ">
             <!--<img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="">-->
             <div style="margin-top:70px;">
 
 
-                <ul class="p-1" style="font-size:13px;">
+                <ul class="p-1 m-0" style="font-size:13px;">
 
                     <div :class="[profile.User.username == item.sender ? 'alignDer' : 'alignIzq']" v-for="item in messages">
                         <div :class="[profile.User.username == item.sender ? 'messagerow2' : 'messagerow']">
@@ -770,7 +712,8 @@ export default {
                 </div>
             </div>
             <div class=" inputContainer" v-if="!currentRoom.status">
-                <input type="text" v-model="chat" class="inputcmp" placeholder="escribir mensaje...." style="height: 60px;">
+                <input autofocus type="text" v-model="chat" class="inputcmp" placeholder="escribir mensaje...."
+                    style="height: 60px;">
                 <button style="width: 60px; height: 60px; border-radius: 50%" class="btn btn-success"
                     @click="appendMenssage()"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
@@ -789,8 +732,8 @@ export default {
 
 
     <!-- Modal -->
-    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
+    <div v-if="currentRoom" class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog" style="margin-top:70px;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -813,10 +756,8 @@ export default {
                         <input type="email" class="form-control" v-model="member.email" name="email" placeholder="Email">
                     </div>
                     <div class="form-group">
-                        <input type="file" id="registerM" className="mb-2" class="form-control"
-                            @change="handleImage($event)" />
-                        <div className="text-center p-4" v-if="img != ''">
-                            <img style="width: 100px; height: 100px; margin: auto;" :src="img" alt="" />
+                        <div className="text-center p-4">
+                            <img style="width: 100px; height: 100px; margin: auto;" :src="currentRoom.img" alt="" />
                         </div>
                     </div>
                 </div>
@@ -830,8 +771,8 @@ export default {
         </div>
     </div>
 
-    <div class="modal fade" id="staticBackdrop2" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
+    <div v-if="currentRoom" class="modal fade" id="staticBackdrop2" data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog" style="margin-top:70px;">
             <div class="modal-content">
                 <div class="modal-header bg bg-success text-white">
@@ -854,8 +795,8 @@ export default {
         </div>
     </div>
 
-    <div class="modal fade" id="staticBackdrop3" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
+    <div v-if="currentRoom" class="modal fade" id="staticBackdrop3" data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-labellehttpy="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog" style="margin-top:70px;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -870,8 +811,8 @@ export default {
                     <ul class="list-group">
                         <li class="list-group-item alinearLinea" v-for="(item, i) in membersGroup">
                             <label for="" v-if="item != profile.User.username">{{ item }}</label>
-                            <input id="saldo" v-if="item != profile.User.username" type="text" className="m-1" placeholder="saldo"
-                                @blur="($event) => handleChangeSaldo(item, $event, i)"
+                            <input id="saldo" v-if="item != profile.User.username" type="text" className="m-1"
+                                placeholder="saldo" @blur="($event) => handleChangeSaldo(item, $event, i)"
                                 @change="($event) => handleChangeSaldo(item, $event, i)" />
                         </li>
                     </ul>
@@ -1047,6 +988,7 @@ export default {
     position: fixed;
     width: 100%;
     z-index: 10000;
+    top: 0;
 }
 
 .msgtitle {

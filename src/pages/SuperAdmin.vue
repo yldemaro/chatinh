@@ -27,7 +27,7 @@ export default {
             profile: {},
             mostrarLink: false,
             mostrarLinks: false,
-            cambiarActiveRoom:false
+            cambiarActiveRoom: false
         }
     },
     async created() {
@@ -43,6 +43,7 @@ export default {
         } else {
             this.logueado();
             this.getUser(this.profile.User.username);
+            this.getAllUsers(this.profile.User.objectId);
         }
 
     },
@@ -57,7 +58,7 @@ export default {
                 localStorage.clear();
                 return;
             }
-            await this.getAllUsers();
+
 
 
         },
@@ -75,38 +76,45 @@ export default {
                 })
                 .catch(error => console.log(error))
         },
-        async getAllUsers() {
-            // setInterval(() => {
-            try {
+        async getAllUsers(id) {
+            fetch(`${http}/client/users/getownerusers/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.usersAll = data;
 
-                fetch(`${http}/client/users`, {
-                    method: "GET"
+                    setTimeout(() => {
+                        this.getDatatable();
+                    }, 3000);
                 })
-                    .then(response => response.json())
-                    .then(async data => {
-                        // console.log(data)
 
-                        if (!data) {
-                            localStorage.clear();
-                            this.logueado();
-                            return;
-                        }
-                        this.usersAll = await data;
+            // setInterval(() => {
+            // try {
 
-                        // if (this.linksAll.length >= 2) {
-                        //     this.getAllRooms();
-                        //     this.getAllLinks();
-                        // }
+            //     fetch(`${http}/client/users`, {
+            //         method: "GET"
+            //     })
+            //         .then(response => response.json())
+            //         .then(async data => {
+            //             // console.log(data)
 
-                        setTimeout(() => {
-                            this.getDatatable();
-                        }, 3000);
+            //             if (!data) {
+            //                 localStorage.clear();
+            //                 this.logueado();
+            //                 return;
+            //             }
+            //             this.usersAll = await data;
 
-                    })
-                    .catch(error => console.log(error))
-            } catch (error) {
-                throw error;
-            }
+            //             
+
+            //             setTimeout(() => {
+            //                 this.getDatatable();
+            //             }, 3000);
+
+            //         })
+            //         .catch(error => console.log(error))
+            // } catch (error) {
+            //     throw error;
+            // }
 
             // }, 4000)
         },
@@ -125,14 +133,12 @@ export default {
                         }
                         return response.json()
                     })
-                    .then(data => {
+                    .then(async data => {
                         // console.log(data)
-                        if (data == undefined) {
-                            this.groupsAll = [];
-                            return;
-                        } else {
-                            this.groupsAll = data;
-                        }
+                        const result= data.filter(element=> element.name == element.staff[0])
+
+                        this.groupsAll = await result;
+                        this.getAllLinks();
 
                     }).catch(error => console.log(error))
             } catch (error) {
@@ -148,11 +154,15 @@ export default {
                     method: "GET"
                 }).then(response => response.json())
                     .then(data => {
-                        if (data.message == 'Not Links found') {
-                            this.linksAll = [];
-                            return;
-                        }
-                        this.linksAll = data;
+
+                        const result = data.filter((element, index) => element.username == this.groupsAll[index]?.name);
+
+                        // console.log(result)
+                        // if (data.message == 'Not Links found') {
+                        //     this.linksAll = [];
+                        //     return;
+                        // }
+                        this.linksAll = result;
 
                     }).catch(error => console.log(error))
             } catch (error) {
@@ -311,7 +321,7 @@ export default {
             this.mostrarUsuarios = true;
             this.mostrarGrupos = false;
             this.mostrarLinks = false;
-            this.getAllUsers();
+            this.getAllUsers(this.profile.User.objectId);
         },
         grupos() {
 
@@ -457,7 +467,6 @@ export default {
                 })
         },
         copiar(valor) {
-            // console.log('llamo a copiar')
             Clipboard.copy(valor);
             this.mostrarLink = false;
 
@@ -468,11 +477,11 @@ export default {
                 $("#exampleC").DataTable();
             });
         },
-        bloquearGrupo(room){
+        bloquearGrupo(room) {
             // this.cambiarActiveRoom= !this.cambiarActiveRoom
 
             // console.log(this.cambiarActiveRoom)
-            
+
             const valueRoom = {
                 uid: room.oid,
                 name: room.name,
@@ -542,11 +551,11 @@ export default {
                                 Mostrar Usuarios
                             </button></div>
                         <div class="col-12 col-md-4 mb-1"> <button type="button" class="btn btn-dark mr-3" @click="grupos()"
-                                :disabled="usersAll.length <= 1">
+                                :disabled="usersAll.length <= 0">
                                 Mostrar Grupos
                             </button></div>
                         <div class="col-12 col-md-4 mb-1">
-                            <button type="button" class="btn btn-dark" @click="links()" :disabled="usersAll.length <= 1">
+                            <button type="button" class="btn btn-dark" @click="links()" :disabled="usersAll.length <= 0">
                                 Mostrar Links
                             </button>
                         </div>
@@ -608,8 +617,8 @@ export default {
                 </thead>
                 <tbody v-if="mostrarGrupos">
 
-                    <tr v-if="groupsAll.length > 0" v-for="(item, index) in groupsAll" :key="item.objectId">
-                        <td>{{ item.name }}</td>
+                    <tr v-for="(item, index) in groupsAll" :key="item.objectId" >
+                        <td >{{ item.name }}</td>
                         <td v-if="!item.active"><span class="activo bg bg-danger text-white p-1">Bloqueado</span></td>
                         <td v-if="item.active"><span class="activo bg bg-success text-white p-1">Activo</span></td>
                         <td>{{ item.staff }}</td>
@@ -618,7 +627,8 @@ export default {
                         <td v-if="item.img != ''"> <img style="width:32px; height:32px; margin:auto;" :src="item.img"
                                 alt="" /></td>
                         <td style="display:flex; justify-content: space-around;">
-                            <button class="btn btn-danger" @click="bloquearGrupo(item)"><i class="fa-sharp fa-regular fa-circle-stop"></i></button>
+                            <button class="btn btn-danger" @click="bloquearGrupo(item)"><i
+                                    class="fa-sharp fa-regular fa-circle-stop"></i></button>
                             <button class="btn btn-danger" @click="eliminarRoom(item.oid)"><i
                                     class="fa-solid fa-trash"></i></button>
                         </td>
@@ -640,7 +650,7 @@ export default {
                     <tr v-if="linksAll.length > 0" v-for="(item, index) in linksAll" :key="item.objectId">
                         <td>{{ item.ObjectId }}{{ item.username }}</td>
                         <td>{{ item.room }}</td>
-                        <td>{{ item.link }}/{{ item.username }}</td>
+                        <td><a :href="item.link+'/'+item.username" target="_blank">{{ item.link }}/{{ item.username }}</a></td>
                         <td>
                             <button class="btn btn-secondary" @click="copiar(item.link + '/' + item.username)"><i
                                     class="fa-solid fa-copy"></i></button>
