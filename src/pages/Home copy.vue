@@ -6,7 +6,6 @@ import { http } from '../http/apihttp';
 
 import firebase from "firebase";
 import { Clipboard } from "v-clipboard";
-import sound from '../assets/sonido/campana.mp3'
 
 export default {
 
@@ -188,7 +187,6 @@ export default {
         },
         async CurrentRoom(room) {
             clearInterval(this.time)
-            clearInterval(this.time)
             this.currentRoom = null;
             this.messages = [];
             this.currentRoom = await room;
@@ -209,25 +207,19 @@ export default {
 
         },
         async getWat(oid) {
-            this.time = setInterval(async () => {
+            this.time= setInterval(async () => {
                 await fetch(`${http}/client/messages/${oid}`, {
                     method: "GET"
                 })
                     .then(response => response.json())
                     .then(async data => {
-                        
+                        // console.log(data.length, this.messages.length)
                         if (data.length != this.messages.length) {
-                            this.scrollEnd();
                             this.messages.push(data[data.length - 1])
-                            this.scrollEnd();
-                            if(data[data.length - 1].sender != this.profile.User.username){
-                                this.repSonido();
-                            }
-                          
                         }
                     })
                     .catch(error => clearInterval(this.time))
-            }, 1000);
+            }, 1500);
         },
         async getMessages(oid) {
 
@@ -236,10 +228,9 @@ export default {
             })
                 .then(response => response.json())
                 .then(async data => {
-                    this.messages = [];
+                    // console.log(data)
                     this.messages = await data;
-                    this.scrollEnd();
-                    this.scrollEnd();
+
                     this.getWat(oid);
                 })
                 .catch(error => console.log(error))
@@ -260,7 +251,6 @@ export default {
         appendMenssage() {
             // //(this.chat);
 
-
             if (!this.chat.length) {
                 return;
             }
@@ -275,8 +265,6 @@ export default {
                 );
                 return;
             }
-
-
 
             // //(this.referMsg.oid);
 
@@ -300,21 +288,15 @@ export default {
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.message) {
-                        this.scrollEnd();
-                        this.getWat(this.currentRoom.oid);
-                        // this.getMessages()
-                    }
-
+                    this.scrollEnd();
+                    this.getMessages(this.currentRoom.oid)
                     // console.log(data);
                     // this.messages.push(data.message);
                     // if (data.message) {
                     //     const chatWindow = document.getElementById('chat');
                     //     chatWindow.scrollTop = chatWindow.scrollTop + 100;
                     // }
-                    document.querySelector('.chat').style.height = '100%';
-                    document.querySelector('.chat').style.transition = 'all 0.5s ease-out;'
-                    this.scrollEnd();
+
                 })
 
 
@@ -355,6 +337,7 @@ export default {
                         body: JSON.stringify(addRoom)
                     }).then(response => response.json())
                         .then(data => {
+                            // console.log('adduser');
                             this.memberAgregado = this.member.username;
                             this.mostrarInfo = true;
                             const valueRoom = {
@@ -362,7 +345,7 @@ export default {
                                 name: this.member.username,
                                 alias: "",
                                 staff: [
-                                    this.member.username
+                                    this.profile.User.username
                                 ],
                                 members: [
                                     this.profile.User.username,
@@ -378,6 +361,7 @@ export default {
                             })
                                 .then(response => response.json())
                                 .then(data => {
+                                    // console.log('crea grupo');
                                     const value = {
                                         username: this.member.username,
                                         room: this.currentRoom.oid
@@ -389,7 +373,7 @@ export default {
                                         .then(response => response.json())
                                         .then(async data => {
                                             // //(data);
-                                            console.log('genera link');
+                                            // console.log('genera link');
                                             this.link = '';
                                             this.mostrarLink = true;
                                             this.link = await `${data.link}/${data.username}`;
@@ -417,14 +401,13 @@ export default {
         },
         onReferMessage(msg) {
             // //(msg)
-            document.querySelector('.chat').style.height = '300px';
             this.referMsg = msg;
             this.findMessages(msg.oid);
-            this.scrollEnd();
+            const chatWindow = document.getElementById('chat');
+            chatWindow.scrollTop = chatWindow.scrollHeight + 100;
             // console.log(chatWindow.scrollTop)
         },
         removeRefer() {
-            document.querySelector('.chat').style.height = '100%';
             this.referMsg = "";
         },
         handleChat() {
@@ -467,7 +450,7 @@ export default {
                     body: JSON.stringify(payload)
                 })
                     .then(response => response.json())
-                    .then(data => { })
+                    .then(data => {})
             }
 
 
@@ -512,37 +495,35 @@ export default {
             // console.log(value)
         },
         async handleCarrera() {
-            console.log(this.users, this.users.length, this.room);
+            // console.log(this.users, this.users.length, this.room);
 
-            
+            for (let index = 0; index < this.users.length; index++) {
+                const element = this.users[index];
+                const text = `${element.hipodromo}, ${element.carrera}, ${Number(element.saldo)}`;
+                await this.obtenerRoom(element.name);
+                const payload = {
+                    content: text,
+                    content2: "",
+                    ishidden: false,
+                    refer: this.referMsg?.oid ?? "",
+                    sender: this.profile.User.username,
+                    room: this.room[1].oid,
+                    date: "",
+                };
 
-            // for (let index = 0; index < this.users.length; index++) {
-            //     const element = this.users[index];
-            //     const text = `${element.hipodromo}, ${element.carrera}, ${Number(element.saldo)}`;
-            //     await this.obtenerRoom(element.name);
-            //     const payload = {
-            //         content: text,
-            //         content2: "",
-            //         ishidden: false,
-            //         refer: this.referMsg?.oid ?? "",
-            //         sender: this.profile.User.username,
-            //         room: this.room[1].oid,
-            //         date: "",
-            //     };
-
-            //     fetch(`${http}/client/messages`, {
-            //         method: 'POST',
-            //         body: JSON.stringify(payload)
-            //     })
-            //         .then(response => response.json())
-            //         .then(data => {
-            //             // //(data)
-            //             if (data.message) {
-            //                 // this.getMessages();
-            //                 this.scrollEnd();
-            //             }
-            //         })
-            // }
+                fetch(`${http}/client/messages`, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // //(data)
+                        if (data.message) {
+                            // this.getMessages();
+                            this.scrollEnd();
+                        }
+                    })
+            }
 
 
 
@@ -583,7 +564,7 @@ export default {
                     .then(data => {
                         this.memberBorrado = person;
                         this.mostrarInfoDel = true;
-                        this.obtenerRoom();
+                        this.memberStr();
                     });
             }
         },
@@ -605,17 +586,6 @@ export default {
             var container = document.querySelector('.chat');
             var scrollHeight = container.scrollHeight;
             container.scrollTop = scrollHeight;
-        },
-        cambiarStado(valor) {
-
-            document.querySelector('.chat').style.height = '300px';
-            this.scrollEnd();
-            document.querySelector('.chat').style.transition = 'all 0.5s ease-out;'
-
-        },
-        repSonido() {
-            const audio = new Audio(sound)
-            audio.play()
         }
 
     },
@@ -630,7 +600,7 @@ export default {
 <template>
     <div class="container-full p-1" v-if="!mostrarAterrizaje">
 
-        <header class="header" v-if="currentRoom">
+        <header class="header navbar navbar-default navbar-fixed-top" v-if="currentRoom">
 
 
             <div class="showPart" data-bs-toggle="modal" data-bs-target="#staticBackdrop2">
@@ -682,7 +652,8 @@ export default {
             <input type="text" readonly class="copy-link-input" :value="link">
             <button class="copy-link-button" @click="copiar(link)"><i class="fa-solid fa-copy"></i></button>
         </div>
-        <div v-if="currentRoom" class="chat" id="chat">
+        <div v-if="currentRoom" class="chat" id="chat"
+            style="height:calc(100% - 70px); overflow-y: scroll; background: url('https://firebasestorage.googleapis.com/v0/b/profileinh.appspot.com/o/fondo.png?alt=media&token=13b267a0-f26d-4d07-9338-e334fc9fdb5f'); ">
             <!--<img class="fondoDefault" src="../assets/img/fondoDefault.jpeg" alt="">-->
             <div style="margin-top:70px;">
 
@@ -742,8 +713,8 @@ export default {
                 </div>
             </div>
             <div class=" inputContainer" v-if="!currentRoom.status">
-                <input autofocus type="text" @click="cambiarStado(true)" v-model="chat" class="inputcmp"
-                    placeholder="escribir mensaje...." style="height: 60px;">
+                <input autofocus type="text" v-model="chat" class="inputcmp" placeholder="escribir mensaje...."
+                    style="height: 60px;">
                 <button style="width: 60px; height: 60px; border-radius: 50%" class="btn btn-success"
                     @click="appendMenssage()"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
@@ -859,6 +830,7 @@ export default {
 
 
 <style>
+
 .bajaBotones {
     width: 25px;
     height: 25px;
@@ -867,17 +839,11 @@ export default {
     margin-right: 3px;
 }
 
-.chat {
-    height: 600px;
-    max-height: 600px;
-    overflow-y: scroll;
-    background-image: url('https://firebasestorage.googleapis.com/v0/b/profileinh.appspot.com/o/fondo.png?alt=media&token=13b267a0-f26d-4d07-9338-e334fc9fdb5f');
-    background-size: 100% 100%;
-}
-
 .boxFooter {
+    position: fixed;
     display: flex;
     flex-direction: column;
+    bottom: 0;
     width: 100%;
 }
 
@@ -893,7 +859,6 @@ export default {
     text-overflow: ellipsis;
     width: 100%;
     max-height: 30px;
-    font-size:13px;
 }
 
 .fondoDefault {
@@ -1017,6 +982,7 @@ export default {
     padding: 10px;
     background-color: #cdcebc;
     min-height: 60px;
+    position: fixed;
     width: 100%;
     z-index: 10000;
     top: 0;
@@ -1088,6 +1054,12 @@ export default {
 
     display: grid;
     place-content: center;
+}
+
+
+.divmsgcontent {
+    /* display: flex; */
+    /* justify-content: space-between; */
 }
 
 .messagerow {

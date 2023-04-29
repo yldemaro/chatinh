@@ -135,7 +135,7 @@ export default {
                     })
                     .then(async data => {
                         // console.log(data)
-                        const result= data.filter(element=> element.name == element.staff[0])
+                        const result = data.filter(element => element.name == element.staff[0])
 
                         this.groupsAll = await result;
                         this.getAllLinks();
@@ -617,15 +617,21 @@ export default {
                 </thead>
                 <tbody v-if="mostrarGrupos">
 
-                    <tr v-for="(item, index) in groupsAll" :key="item.objectId" >
-                        <td >{{ item.name }}</td>
+                    <tr v-for="(item, index) in groupsAll" :key="item.objectId">
+                        <td>{{ item.name }}</td>
                         <td v-if="!item.active"><span class="activo bg bg-danger text-white p-1">Bloqueado</span></td>
                         <td v-if="item.active"><span class="activo bg bg-success text-white p-1">Activo</span></td>
                         <td>{{ item.staff }}</td>
-                        <td v-if="item.img == ''"><img style="width:32px; height:32px; margin:auto;"
-                                src="../assets/img/user.svg" alt="" /></td>
-                        <td v-if="item.img != ''"> <img style="width:32px; height:32px; margin:auto;" :src="item.img"
-                                alt="" /></td>
+                        <td v-if="item.img == ''">
+                            <img
+                                style="width:32px; height:32px; margin-right:20px;" src="../assets/img/user.svg" alt="" />
+                            <button class="btn btn-light"><i class="fa-regular fa-envelope"></i></button>
+                        </td>
+                        <td v-if="item.img != ''" >
+                            <img style="width:32px; height:32px; margin-right:20px;" :src="item.img" alt="" />
+                            <button class="btn btn-light"><i class="fa-regular fa-envelope"></i></button>
+
+                        </td>
                         <td style="display:flex; justify-content: space-around;">
                             <button class="btn btn-danger" @click="bloquearGrupo(item)"><i
                                     class="fa-sharp fa-regular fa-circle-stop"></i></button>
@@ -650,7 +656,9 @@ export default {
                     <tr v-if="linksAll.length > 0" v-for="(item, index) in linksAll" :key="item.objectId">
                         <td>{{ item.ObjectId }}{{ item.username }}</td>
                         <td>{{ item.room }}</td>
-                        <td><a :href="item.link+'/'+item.username" target="_blank">{{ item.link }}/{{ item.username }}</a></td>
+                        <td><a :href="item.link + '/' + item.username" target="_blank">{{ item.link }}/{{ item.username
+                        }}</a>
+                        </td>
                         <td>
                             <button class="btn btn-secondary" @click="copiar(item.link + '/' + item.username)"><i
                                     class="fa-solid fa-copy"></i></button>
